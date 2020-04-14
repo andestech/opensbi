@@ -11,7 +11,7 @@
 platform-cppflags-y =
 platform-cflags-y =
 platform-asflags-y =
-platform-ldflags-y =
+platform-ldflags-y = -mno-relax
 
 # Blobs to build
 FW_TEXT_START=0x00000000
