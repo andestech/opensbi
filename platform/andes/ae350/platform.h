@@ -54,6 +54,7 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_L1CACHE_D_PREFETCH,
 	SBI_EXT_ANDES_NON_BLOCKING_LOAD_STORE,
 	SBI_EXT_ANDES_WRITE_AROUND,
+	SBI_EXT_ANDES_TRIGGER,
 };
 
 /* nds v5 mmisc_ctl register*/

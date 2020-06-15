@@ -20,6 +20,7 @@
 #include "plicsw.h"
 #include "plmt.h"
 #include "cache.h"
+#include "trigger.h"
 
 static struct plic_data plic = {
 	.addr = AE350_PLIC_ADDR,
@@ -57,6 +58,28 @@ static int ae350_final_init(bool cold_boot)
 	fdt_fixups(fdt);
 
 	return 0;
+}
+
+static uintptr_t mcall_set_trigger(long type, uintptr_t data, unsigned int m,
+					unsigned int s, unsigned int u)
+{
+	int ret;
+	switch (type) {
+	case TRIGGER_TYPE_ICOUNT:
+		ret = trigger_set_icount(data, m, s, u);
+		break;
+	case TRIGGER_TYPE_ITRIGGER:
+		ret = trigger_set_itrigger(data, m, s, u);
+		break;
+	case TRIGGER_TYPE_ETRIGGER:
+		ret = trigger_set_etrigger(data, m, s, u);
+		break;
+	default:
+		ret = -1;
+		break;
+	}
+
+	return ret;
 }
 
 /* Initialize the platform console. */
@@ -158,6 +181,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_WRITE_AROUND:
 		ret = mcall_write_around(args[0]);
+		break;
+	case SBI_EXT_ANDES_TRIGGER:
+		*out_value = mcall_set_trigger(args[0], args[1], 0, 0, args[2]);
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
