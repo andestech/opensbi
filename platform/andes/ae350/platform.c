@@ -21,12 +21,13 @@
 #include "plmt.h"
 #include "cache.h"
 #include "trigger.h"
+#include "smu.h"
 
 static struct plic_data plic = {
 	.addr = AE350_PLIC_ADDR,
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
-
+int has_l2;
 /* Platform final initialization. */
 static int ae350_final_init(bool cold_boot)
 {
@@ -43,6 +44,7 @@ static int ae350_final_init(bool cold_boot)
 		mcache_ctl_val |= V5_MCACHE_CTL_CCTL_SUEN;
 	csr_write(CSR_MCACHECTL, mcache_ctl_val);
 
+	has_l2 = 1;
 	/* enable L2 cache */
 	uint32_t *l2c_ctl_base = (void *)AE350_L2C_ADDR + V5_L2C_CTL_OFFSET;
 	uint32_t l2c_ctl_val = *l2c_ctl_base;
@@ -86,6 +88,38 @@ static uintptr_t mcall_set_pfm()
 {
 	csr_clear(CSR_SLIP, MIP_SOVFIP);
 	csr_set(CSR_MIE, MIP_MOVFIP);
+	return 0;
+}
+
+static uintptr_t mcall_suspend_prepare(char main_core, char enable)
+{
+	if (main_core) {
+		if (enable) {
+			csr_set(CSR_MIE, MIP_MTIP);
+			csr_set(CSR_MIE, MIP_MSIP);
+			csr_set(CSR_MIE, MIP_MEIP);
+		} else {
+			csr_clear(CSR_MIE, MIP_MTIP);
+			csr_clear(CSR_MIE, MIP_MSIP);
+			csr_clear(CSR_MIE, MIP_MEIP);
+		}
+
+	} else {
+		if (enable) {
+			csr_clear(CSR_MIE, MIP_MEIP);
+			csr_clear(CSR_MIE, MIP_MTIP);
+		} else {
+			csr_set(CSR_MIE, MIP_MEIP);
+			csr_set(CSR_MIE, MIP_MTIP);
+		}
+	}
+	return 0;
+}
+
+extern void cpu_suspend2ram(void);
+static uintptr_t mcall_suspend_backup(void)
+{
+	cpu_suspend2ram();
 	return 0;
 }
 
@@ -200,6 +234,12 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
 		csr_write(CSR_MPFTCTL, args[0]);
+		break;
+	case SBI_EXT_ANDES_SUSPEND_PREPARE:
+		ret = mcall_suspend_prepare(args[0], args[1]);
+		break;
+	case SBI_EXT_ANDES_SUSPEND_MEM:
+		ret = mcall_suspend_backup();
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
