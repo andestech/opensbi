@@ -55,7 +55,17 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_NON_BLOCKING_LOAD_STORE,
 	SBI_EXT_ANDES_WRITE_AROUND,
 	SBI_EXT_ANDES_TRIGGER,
+	SBI_EXT_ANDES_SET_PFM,
 };
+
+/* MISC */
+#define IRQ_PFM         18
+#define MIP_MOVFIP      (1 << IRQ_PFM)
+#define MIP_SOVFIP      (1 << IRQ_PFM)
+
+/* Supervisor Trap Related Registers */
+#define CSR_SLIE	0x9c4
+#define CSR_SLIP	0x9c5
 
 /* nds v5 mmisc_ctl register*/
 #define V5_MMISC_CTL_VEC_PLIC_OFFSET            1

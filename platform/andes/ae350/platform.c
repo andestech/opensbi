@@ -82,6 +82,13 @@ static uintptr_t mcall_set_trigger(long type, uintptr_t data, unsigned int m,
 	return ret;
 }
 
+static uintptr_t mcall_set_pfm()
+{
+	csr_clear(CSR_SLIP, MIP_SOVFIP);
+	csr_set(CSR_MIE, MIP_MOVFIP);
+	return 0;
+}
+
 /* Initialize the platform console. */
 static int ae350_console_init(void)
 {
@@ -184,6 +191,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_TRIGGER:
 		*out_value = mcall_set_trigger(args[0], args[1], 0, 0, args[2]);
+		break;
+	case SBI_EXT_ANDES_SET_PFM:
+		ret = mcall_set_pfm();
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
