@@ -198,6 +198,12 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 	case SBI_EXT_ANDES_SET_PFM:
 		ret = mcall_set_pfm();
 		break;
+	case SBI_EXT_ANDES_READ_POWERBRAKE:
+		*out_value = csr_read(CSR_MPFTCTL);
+		break;
+	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
+		csr_write(CSR_MPFTCTL, args[0]);
+		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
 		asm volatile("ebreak");
