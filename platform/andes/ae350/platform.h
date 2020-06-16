@@ -62,6 +62,9 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_SUSPEND_MEM,
 	SBI_EXT_ANDES_RESTART,
 	SBI_EXT_ANDES_RESET_VEC,
+	SBI_EXT_ANDES_SET_PMA,
+	SBI_EXT_ANDES_FREE_PMA,
+	SBI_EXT_ANDES_PROBE_PMA,
 };
 
 /* MISC */
@@ -72,6 +75,11 @@ enum sbi_ext_andes_fid {
 /* Supervisor Trap Related Registers */
 #define CSR_SLIE	0x9c4
 #define CSR_SLIP	0x9c5
+
+/* Configuration Control & Status Registers  */
+#define CSR_MICMCFG	0xfc0
+#define CSR_MDCMCFG	0xfc1
+#define CSR_MMSCCFG	0xfc2
 
 /* nds v5 mmisc_ctl register*/
 #define V5_MMISC_CTL_VEC_PLIC_OFFSET            1
