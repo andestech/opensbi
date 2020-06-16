@@ -126,6 +126,24 @@ static uintptr_t mcall_suspend_backup(void)
 	return 0;
 }
 
+static void mcall_restart(int cpu_nums)
+{
+	int i;
+	unsigned int *dev_ptr;
+	unsigned char *tmp;
+	for (i = 0; i < cpu_nums; i++) {
+		dev_ptr = (unsigned int *)((unsigned long)SMU_BASE + SMU_RESET_VEC_OFF
+			+ SMU_RESET_VEC_PER_CORE*i);
+		*dev_ptr = DRAM_BASE;
+	}
+
+	dev_ptr = (unsigned int *)((unsigned int)SMU_BASE + PCS0_CTL_OFF);
+	tmp = (unsigned char *)dev_ptr;
+	*tmp = RESET_CMD;
+	__asm__("wfi");
+	while(1){};
+}
+
 /* Initialize the platform console. */
 static int ae350_console_init(void)
 {
@@ -243,6 +261,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_SUSPEND_MEM:
 		ret = mcall_suspend_backup();
+		break;
+	case SBI_EXT_ANDES_RESTART:
+		mcall_restart(args[0]);
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
