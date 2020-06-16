@@ -23,7 +23,7 @@
 #define POP(which)  LOAD which, 0(sp); addi sp, sp, REGBYTES
 #define POP_CSR(csr)  LOAD t0, 0(sp); addi sp, sp, REGBYTES; csrw csr, t0
 
-
+#define DRAM_BASE		0x80000000
 #define SMU_BASE		0xf0100000
 #define PCS0_CTL_OFF    	0x94
 #define SMU_RESET_VEC_OFF       0x50
