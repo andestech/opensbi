@@ -22,6 +22,7 @@
 #include "cache.h"
 #include "trigger.h"
 #include "smu.h"
+#include "pma.h"
 
 static struct plic_data plic = {
 	.addr = AE350_PLIC_ADDR,
@@ -279,6 +280,15 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_RESET_VEC:
 		mcall_set_reset_vec(args[0]);
+		break;
+	case SBI_EXT_ANDES_SET_PMA:
+		mcall_set_pma(args[0], args[1], args[2]);
+		break;
+	case SBI_EXT_ANDES_FREE_PMA:
+		mcall_free_pma(args[0]);
+		break;
+	case SBI_EXT_ANDES_PROBE_PMA:
+		*out_value = ((csr_read(CSR_MMSCCFG) & 0x40000000) != 0);
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
