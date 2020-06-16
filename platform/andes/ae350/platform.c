@@ -141,6 +141,21 @@ static void mcall_restart(int cpu_nums)
 	while(1){};
 }
 
+extern void cpu_resume(void);
+static void mcall_set_reset_vec(int cpu_nums)
+{
+	int i;
+	unsigned int *dev_ptr;
+	unsigned int *tmp = (unsigned int *)&cpu_resume;
+
+	for (i = 0; i < cpu_nums; i++) {
+		dev_ptr = (unsigned int *)((unsigned long)SMU_BASE + SMU_RESET_VEC_OFF
+			+ SMU_RESET_VEC_PER_CORE*i);
+
+	*dev_ptr = (unsigned long)tmp;
+	}
+}
+
 /* Initialize the platform console. */
 static int ae350_console_init(void)
 {
@@ -261,6 +276,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_RESTART:
 		mcall_restart(args[0]);
+		break;
+	case SBI_EXT_ANDES_RESET_VEC:
+		mcall_set_reset_vec(args[0]);
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
