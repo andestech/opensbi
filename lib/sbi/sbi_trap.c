@@ -18,6 +18,7 @@
 #include <sbi/sbi_misaligned_ldst.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
+#include <../platform/andes/ae350/platform.h>
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
@@ -231,6 +232,10 @@ void sbi_trap_handler(struct sbi_trap_regs *regs)
 		case IRQ_M_SOFT:
 			sbi_ipi_process();
 			break;
+		case IRQ_M_PMU:
+			csr_clear(CSR_MIE, MIP_MOVFIP);
+			csr_set(CSR_SLIP, MIP_MOVFIP);
+            break;
 		default:
 			msg = "unhandled external interrupt";
 			goto trap_error;

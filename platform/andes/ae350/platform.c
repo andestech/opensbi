@@ -60,6 +60,15 @@ static int ae350_final_init(bool cold_boot)
 	fdt = sbi_scratch_thishart_arg1_ptr();
 	fdt_fixups(fdt);
 
+	/* Machine counter write enable */
+	csr_write(mcounterwen, 0xfffffffd);
+	/* Supervisor local interrupt enable */
+    csr_write(slie, MIP_MOVFIP);
+	/* disable machine counter in M-mode */
+    csr_write(mcountermask_m, 0xfffffffd);
+	/* delegate S-mode local interrupt to S-mode */
+    csr_write(mslideleg, MIP_MOVFIP);
+
 	return 0;
 }
 
