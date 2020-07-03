@@ -29,6 +29,22 @@ static struct plic_data plic = {
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
 int has_l2;
+
+/* Platform early initialization. */
+static int ae350_early_init(bool cold_boot)
+{
+	/* Machine counter write enable */
+	csr_write(mcounterwen, 0xfffffffd);
+	/* Supervisor local interrupt enable */
+    csr_write(slie, MIP_MOVFIP);
+	/* disable machine counter in M-mode */
+    csr_write(mcountermask_m, 0xfffffffd);
+	/* delegate S-mode local interrupt to S-mode */
+    csr_write(mslideleg, MIP_MOVFIP);
+
+	return 0;
+}
+
 /* Platform final initialization. */
 static int ae350_final_init(bool cold_boot)
 {
@@ -59,15 +75,6 @@ static int ae350_final_init(bool cold_boot)
 
 	fdt = sbi_scratch_thishart_arg1_ptr();
 	fdt_fixups(fdt);
-
-	/* Machine counter write enable */
-	csr_write(mcounterwen, 0xfffffffd);
-	/* Supervisor local interrupt enable */
-    csr_write(slie, MIP_MOVFIP);
-	/* disable machine counter in M-mode */
-    csr_write(mcountermask_m, 0xfffffffd);
-	/* delegate S-mode local interrupt to S-mode */
-    csr_write(mslideleg, MIP_MOVFIP);
 
 	return 0;
 }
@@ -308,6 +315,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 
 /* Platform descriptor. */
 const struct sbi_platform_operations platform_ops = {
+	.early_init = ae350_early_init,
 	.final_init = ae350_final_init,
 
 	.console_init = ae350_console_init,
