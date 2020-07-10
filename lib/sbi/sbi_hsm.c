@@ -105,24 +105,32 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 }
 
+extern int ae350_suspend_mode;
+extern int ae350_enter_suspend_mode(int suspend_mode);
 static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 {
 	unsigned long saved_mie;
 	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
 							    hart_data_offset);
-	/* Save MIE CSR */
-	saved_mie = csr_read(CSR_MIE);
 
-	/* Set MSIE bit to receive IPI */
-	csr_set(CSR_MIE, MIP_MSIP);
+	if(ae350_suspend_mode != 0){
+		ae350_enter_suspend_mode(ae350_suspend_mode);
+		ae350_suspend_mode = 0;
+	}else{
+		/* Save MIE CSR */
+		saved_mie = csr_read(CSR_MIE);
 
-	/* Wait for hart_add call*/
-	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
-		wfi();
-	};
+		/* Set MSIE bit to receive IPI */
+		csr_set(CSR_MIE, MIP_MSIP);
 
-	/* Restore MIE CSR */
-	csr_write(CSR_MIE, saved_mie);
+		/* Wait for hart_add call*/
+		while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
+			wfi();
+		};
+
+		/* Restore MIE CSR */
+		csr_write(CSR_MIE, saved_mie);
+	}
 
 	/*
 	 * No need to clear IPI here because the sbi_ipi_init() will

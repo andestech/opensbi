@@ -35,7 +35,6 @@
 /* nds mcache_ctl register*/
 #define CSR_MCACHECTL       0x7ca
 
-
 /* Configuration Registers */
 #define CSR_MICM_CFG        0xfc0
 #define CSR_MDCM_CFG        0xfc1
@@ -151,6 +150,8 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_WRITE_POWERBRAKE,
 	SBI_EXT_ANDES_SUSPEND_PREPARE,
 	SBI_EXT_ANDES_SUSPEND_MEM,
+	SBI_EXT_ANDES_SET_SUSPEND_MODE,
+	SBI_EXT_ANDES_ENTER_SUSPEND_MODE,
 	SBI_EXT_ANDES_RESTART,
 	SBI_EXT_ANDES_RESET_VEC,
 	SBI_EXT_ANDES_SET_PMA,
