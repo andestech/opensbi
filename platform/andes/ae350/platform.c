@@ -29,6 +29,7 @@ static struct plic_data plic = {
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
 int has_l2;
+extern int ae350_suspend_mode;
 
 /* Platform early initialization. */
 static int ae350_early_init(bool cold_boot)
@@ -61,14 +62,16 @@ static int ae350_final_init(bool cold_boot)
 		mcache_ctl_val |= V5_MCACHE_CTL_CCTL_SUEN;
 	csr_write(CSR_MCACHECTL, mcache_ctl_val);
 
-	has_l2 = 1;
 	/* enable L2 cache */
 	uint32_t *l2c_ctl_base = (void *)AE350_L2C_ADDR + V5_L2C_CTL_OFFSET;
 	uint32_t l2c_ctl_val = *l2c_ctl_base;
 
-	if (!(l2c_ctl_val & V5_L2C_CTL_ENABLE_MASK))
-		l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK;
-	*l2c_ctl_base = l2c_ctl_val;
+	has_l2 = (l2c_ctl_val>0) ? 1 : 0;
+	if(has_l2){
+		if (!(l2c_ctl_val & V5_L2C_CTL_ENABLE_MASK))
+			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK;
+		*l2c_ctl_base = l2c_ctl_val;
+	}
 
 	if (!cold_boot)
 		return 0;
@@ -110,26 +113,7 @@ static uintptr_t mcall_set_pfm()
 
 static uintptr_t mcall_suspend_prepare(char main_core, char enable)
 {
-	if (main_core) {
-		if (enable) {
-			csr_set(CSR_MIE, MIP_MTIP);
-			csr_set(CSR_MIE, MIP_MSIP);
-			csr_set(CSR_MIE, MIP_MEIP);
-		} else {
-			csr_clear(CSR_MIE, MIP_MTIP);
-			csr_clear(CSR_MIE, MIP_MSIP);
-			csr_clear(CSR_MIE, MIP_MEIP);
-		}
-
-	} else {
-		if (enable) {
-			csr_clear(CSR_MIE, MIP_MEIP);
-			csr_clear(CSR_MIE, MIP_MTIP);
-		} else {
-			csr_set(CSR_MIE, MIP_MEIP);
-			csr_set(CSR_MIE, MIP_MTIP);
-		}
-	}
+	smu_suspend_prepare(main_core,enable);
 	return 0;
 }
 
@@ -236,6 +220,59 @@ static int ae350_system_reset(u32 type)
 	return 0;
 }
 
+/* called flow:
+
+	1. kernel -> ae350_set_suspend_mode(light/deep) -> set variable: ae350_suspend_mode
+
+	2. cpu_stop() -> sbi_hsm_hart_stop() -> sbi_hsm_exit() ->
+		jump_warmboot() -> sbi_hsm_hart_wait() -> ae350_enter_suspend_mode() -> normal/light/deep */
+int ae350_set_suspend_mode(int suspend_mode)
+{
+	ae350_suspend_mode = suspend_mode;
+
+	if(suspend_mode == LightSleepMode){
+		sbi_printf("ae350_suspend_mode: Light Sleep Mode\n");
+	}else if(suspend_mode == DeepSleepMode){
+		sbi_printf("ae350_suspend_mode: Deep Sleep Mode\n");
+	}
+	return 0;
+}
+
+int ae350_enter_suspend_mode(int suspend_mode){
+	u32 hartid = current_hartid();
+
+	// smu function
+	if(suspend_mode == LightSleepMode){
+		// set SMU wakeup enable & MISC control
+		smu_set_wakeup_enable(hartid, 1 << PCS_WAKE_MSIP_OFF);
+		// Disable higher privilege's non-wakeup event
+		smu_suspend_prepare(false, false);
+		// set SMU light sleep command
+		smu_set_sleep(hartid, LightSleep_CTL);
+		// D-cache disable
+		mcall_dcache_op(0);
+		// wait for interrupt
+		wfi();
+		// D-cache enable
+		mcall_dcache_op(1);
+		// enable privilege
+		smu_suspend_prepare(false, true);
+	}else if(suspend_mode == DeepSleepMode){
+		// set SMU wakeup enable & MISC control
+		smu_set_wakeup_enable(hartid, 1 << PCS_WAKE_MSIP_OFF);
+		// Disable higher privilege's non-wakeup event
+		smu_suspend_prepare(false, false);
+		// set SMU Deep sleep command
+		smu_set_sleep(hartid, DeepSleep_CTL);
+		// stop & wfi & resume
+		cpu_suspend2ram();
+		// enable privilege
+		smu_suspend_prepare(false, true);
+	}
+
+	return 0;
+}
+
 /* Vendor-Specific SBI handler */
 static int ae350_vendor_ext_provider(long extid, long funcid,
 	unsigned long *args, unsigned long *out_value,
@@ -290,6 +327,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_SUSPEND_MEM:
 		ret = mcall_suspend_backup();
+		break;
+	case SBI_EXT_ANDES_SET_SUSPEND_MODE:
+		ae350_set_suspend_mode(args[0]);
 		break;
 	case SBI_EXT_ANDES_RESTART:
 		mcall_restart(args[0]);
