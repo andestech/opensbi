@@ -14,6 +14,13 @@
 #include "platform.h"
 #include "pma.h"
 
+void init_pma(void){
+  int i;
+  for (i = 0; i < PMA_NUM; i++) {
+    pma_used_table[i] = 0;
+  }
+}
+
 void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size)
 {
 	int i, power = 0;
@@ -53,12 +60,13 @@ void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size)
 			*pmaxcfg = *pmaxcfg | PMA_NOCACHE_BUFFER;
 			write_pmacfg(i / 8, pmacfg_val);
 #else
-                        pmacfg_val = read_pmacfg(i / 4);
-                        pmaxcfg = (char *)&pmacfg_val;
-                        *pmaxcfg = 0;
-                        *pmaxcfg = *pmaxcfg | PMA_NAPOT;
-                        *pmaxcfg = *pmaxcfg | PMA_NOCACHE_BUFFER;
-                        write_pmacfg(i / 4, pmacfg_val);
+      pmacfg_val = read_pmacfg(i / 4);
+      pmaxcfg = (char *)&pmacfg_val;
+      pmaxcfg = pmaxcfg + (i % 4);
+      *pmaxcfg = 0;
+      *pmaxcfg = *pmaxcfg | PMA_NAPOT;
+      *pmaxcfg = *pmaxcfg | PMA_NOCACHE_BUFFER;
+      write_pmacfg(i / 4, pmacfg_val);
 #endif
 			write_pmaaddr(i, pa);
 			return;

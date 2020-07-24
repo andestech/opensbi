@@ -79,6 +79,8 @@ static int ae350_final_init(bool cold_boot)
 	fdt = sbi_scratch_thishart_arg1_ptr();
 	fdt_fixups(fdt);
 
+	init_pma();
+
 	return 0;
 }
 
