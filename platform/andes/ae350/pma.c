@@ -14,6 +14,8 @@
 #include "platform.h"
 #include "pma.h"
 
+unsigned long pma_used_table[PMA_NUM];
+
 void init_pma(void){
   int i;
   for (i = 0; i < PMA_NUM; i++) {

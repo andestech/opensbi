@@ -40,7 +40,7 @@
 #define PMACFG_3	0xBC3
 
 
-unsigned long pma_used_table[PMA_NUM];
+extern unsigned long pma_used_table[PMA_NUM];
 
 void write_pmaaddr(int i, unsigned long val);
 
