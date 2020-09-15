@@ -15,6 +15,8 @@
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
+#include <sbi/sbi_scratch.h>
+#include <sbi/sbi_hart.h>
 
 int sbi_emulate_csr_read(int csr_num, struct sbi_trap_regs *regs,
 			 ulong *csr_val)
@@ -28,8 +30,13 @@ int sbi_emulate_csr_read(int csr_num, struct sbi_trap_regs *regs,
 	bool virt = (regs->mstatus & MSTATUS_MPV) ? TRUE : FALSE;
 #endif
 
-	if (prev_mode == PRV_U)
+	if (prev_mode == PRV_U){
 		cen = csr_read(CSR_SCOUNTEREN);
+		if (csr_num == CSR_TIME &&
+		    !sbi_hart_has_feature(sbi_scratch_thishart_ptr(),
+					  SBI_HART_HAS_TIME))
+			cen |= (1UL << 1);
+	}
 
 	switch (csr_num) {
 	case CSR_HTIMEDELTA:
