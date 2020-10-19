@@ -64,6 +64,7 @@ static int ae350_final_init(bool cold_boot)
 	fdt_fixups(fdt);
 
 	init_pma();
+	trigger_init();
 
 	return 0;
 }
