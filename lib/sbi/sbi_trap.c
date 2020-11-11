@@ -169,6 +169,7 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 		csr_write(CSR_STVAL, trap->tval);
 		csr_write(CSR_SEPC, trap->epc);
 		csr_write(CSR_SCAUSE, trap->cause);
+		csr_write(CSR_SDCAUSE, trap->dcause);
 
 		/* Set MEPC to S-mode exception vector base */
 		regs->mepc = csr_read(CSR_STVEC);
@@ -215,6 +216,7 @@ void sbi_trap_handler(struct sbi_trap_regs *regs)
 	int rc = SBI_ENOTSUPP;
 	const char *msg = "trap handler failed";
 	ulong mcause = csr_read(CSR_MCAUSE);
+	ulong mdcause = csr_read(CSR_MDCAUSE);
 	ulong mtval = csr_read(CSR_MTVAL), mtval2 = 0, mtinst = 0;
 	struct sbi_trap_info trap;
 
@@ -265,6 +267,7 @@ void sbi_trap_handler(struct sbi_trap_regs *regs)
 		/* If the trap came from S or U mode, redirect it there */
 		trap.epc = regs->mepc;
 		trap.cause = mcause;
+		trap.dcause = mdcause;
 		trap.tval = mtval;
 		trap.tval2 = mtval2;
 		trap.tinst = mtinst;

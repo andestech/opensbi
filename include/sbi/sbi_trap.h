@@ -194,6 +194,8 @@ struct sbi_trap_info {
 	unsigned long epc;
 	/** cause Trap exception cause */
 	unsigned long cause;
+	/** cause Trap exception dcause */
+	unsigned long dcause;
 	/** tval Trap value */
 	unsigned long tval;
 	/** tval2 Trap value 2 */
