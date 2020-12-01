@@ -73,7 +73,8 @@ static int ae350_final_init(bool cold_boot)
 	uint32_t *l2c_ctl_base = (void *)AE350_L2C_ADDR + V5_L2C_CTL_OFFSET;
 	uint32_t l2c_ctl_val = *l2c_ctl_base;
 
-	has_l2 = (l2c_ctl_val>0) ? 1 : 0;
+	// l2c_ctl_val=0xffffffff  ==> no_l2
+	has_l2 = (l2c_ctl_val==((uint32_t)~0U)) ? 0 : 1;
 	if(has_l2){
 		if (!(l2c_ctl_val & V5_L2C_CTL_ENABLE_MASK))
 			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK;
