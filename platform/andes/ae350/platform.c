@@ -57,8 +57,7 @@ static int ae350_final_init(bool cold_boot)
 
 	if (!(mcache_ctl_val & V5_MCACHE_CTL_IC_EN))
 		mcache_ctl_val |= V5_MCACHE_CTL_IC_EN;
-
-	if (!(scratch->options & SBI_SCRATCH_NO_CACHE_PRINTS)) {
+	if ((!(scratch->options & SBI_SCRATCH_NO_CACHE_PRINTS)) || (!(cold_boot))) {
 		if (!(mcache_ctl_val & V5_MCACHE_CTL_DC_EN))
 			mcache_ctl_val |= V5_MCACHE_CTL_DC_EN;
 	}
