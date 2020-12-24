@@ -50,14 +50,18 @@ static int ae350_early_init(bool cold_boot)
 static int ae350_final_init(bool cold_boot)
 {
 	void *fdt;
+	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 
 	/* enable L1 cache */
 	uintptr_t mcache_ctl_val = csr_read(CSR_MCACHECTL);
 
 	if (!(mcache_ctl_val & V5_MCACHE_CTL_IC_EN))
 		mcache_ctl_val |= V5_MCACHE_CTL_IC_EN;
-	if (!(mcache_ctl_val & V5_MCACHE_CTL_DC_EN))
-		mcache_ctl_val |= V5_MCACHE_CTL_DC_EN;
+
+	if (!(scratch->options & SBI_SCRATCH_NO_CACHE_PRINTS)) {
+		if (!(mcache_ctl_val & V5_MCACHE_CTL_DC_EN))
+			mcache_ctl_val |= V5_MCACHE_CTL_DC_EN;
+	}
 	if (!(mcache_ctl_val & V5_MCACHE_CTL_CCTL_SUEN))
 		mcache_ctl_val |= V5_MCACHE_CTL_CCTL_SUEN;
 	if (!(mcache_ctl_val & V5_MCACHE_CTL_L1I_PREFETCH_EN))
@@ -80,6 +84,7 @@ static int ae350_final_init(bool cold_boot)
 			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK;
 		*l2c_ctl_base = l2c_ctl_val;
 	}
+
 
 	if (!cold_boot)
 		return 0;
@@ -356,6 +361,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_PROBE_PMA:
 		*out_value = ((csr_read(CSR_MMSCCFG) & 0x40000000) != 0);
+		break;
+	case SBI_EXT_ANDES_DCACHE_WBINVAL_ALL:
+		ret = mcall_dcache_wbinval_all();
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
