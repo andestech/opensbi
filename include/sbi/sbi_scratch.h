@@ -79,6 +79,8 @@ enum sbi_scratch_options {
 	SBI_SCRATCH_NO_BOOT_PRINTS = (1 << 0),
 	/** Enable runtime debug prints */
 	SBI_SCRATCH_DEBUG_PRINTS = (1 << 1),
+	/** Disable cache during boot */
+	SBI_SCRATCH_NO_CACHE_PRINTS = (1 << 2),
 };
 
 /** Get pointer to sbi_scratch for current HART */

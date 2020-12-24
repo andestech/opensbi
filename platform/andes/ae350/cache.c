@@ -48,6 +48,13 @@ uintptr_t mcall_dcache_op(unsigned int enable)
 	return 0;
 }
 
+uintptr_t mcall_dcache_wbinval_all(void)
+{
+	csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
+
+	return 0;
+}
+
 uintptr_t mcall_l1_cache_i_prefetch_op(unsigned long enable)
 {
 	if (enable) {
