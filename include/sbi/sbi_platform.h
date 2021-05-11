@@ -68,6 +68,8 @@ enum sbi_platform_features {
 /** Platform functions */
 struct sbi_platform_operations {
 	/** Platform early initialization */
+	int (*pre_init)(bool cold_boot);
+	/** Platform early initialization */
 	int (*early_init)(bool cold_boot);
 	/** Platform final initialization */
 	int (*final_init)(bool cold_boot);
@@ -370,6 +372,22 @@ static inline int sbi_platform_hart_stop(const struct sbi_platform *plat)
 	if (plat && sbi_platform_ops(plat)->hart_stop)
 		return sbi_platform_ops(plat)->hart_stop();
 	return SBI_ENOTSUPP;
+}
+
+/**
+ * Pre initialization for current HART
+ *
+ * @param plat pointer to struct sbi_platform
+ * @param cold_boot whether cold boot (TRUE) or warm_boot (FALSE)
+ *
+ * @return 0 on success and negative error code on failure
+ */
+static inline int sbi_platform_pre_init(const struct sbi_platform *plat,
+					  bool cold_boot)
+{
+	if (plat && sbi_platform_ops(plat)->pre_init)
+		return sbi_platform_ops(plat)->pre_init(cold_boot);
+	return 0;
 }
 
 /**
