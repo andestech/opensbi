@@ -25,12 +25,12 @@ void trigger_init(void)
 	int i;
 
 	for (i = 0; i < TRIGGER_MAX; i++) {
-		csr_write(tselect, i);
-		tselect = csr_read(tselect);
+		csr_write(CSR_TSELECT, i);
+		tselect = csr_read(CSR_TSELECT);
 		if (i != tselect)
 			break;
 
-		tinfo = csr_read(tinfo);
+		tinfo = csr_read(CSR_TINFO);
 		if (tinfo == 1)
 			break;
 	}
@@ -46,8 +46,8 @@ static int trigger_set_tselect(int val)
 {
 	uintptr_t ret;
 
-	csr_write(tselect, val);
-	ret = csr_read(tselect);
+	csr_write(CSR_TSELECT, val);
+	ret = csr_read(CSR_TSELECT);
 
 	if (ret != val)
 		return -1;
@@ -59,8 +59,8 @@ static int trigger_set_tdata1(uintptr_t val)
 {
 	uintptr_t ret;
 
-	csr_write(tdata1, val);
-	ret = csr_read(tdata1);
+	csr_write(CSR_TDATA1, val);
+	ret = csr_read(CSR_TDATA1);
 
 	if (ret != val)
 		return -1;
@@ -72,8 +72,8 @@ static int trigger_set_tdata2(uintptr_t val)
 {
 	uintptr_t ret;
 
-	csr_write(tdata2, val);
-	ret = csr_read(tdata2);
+	csr_write(CSR_TDATA2, val);
+	ret = csr_read(CSR_TDATA2);
 
 	if (ret != val)
 		return -1;
@@ -85,8 +85,8 @@ static int trigger_set_tdata3(uintptr_t val)
 {
 	uintptr_t ret;
 
-	csr_write(tdata3, val);
-	ret = csr_read(tdata3);
+	csr_write(CSR_TDATA3, val);
+	ret = csr_read(CSR_TDATA3);
 
 	if (ret != val)
 		return -1;
@@ -100,14 +100,14 @@ static int trigger_used_by_dmode(int num)
 	int dmode;
 
 	trigger_set_tselect(num);
-	dmode = (csr_read(tdata1) & TDATA1_OFFSET_DMOEE);
+	dmode = (csr_read(CSR_TDATA1) & TDATA1_OFFSET_DMOEE);
 
 	return dmode;
 }
 
 static int trigger_get_free(void)
 {
-	int i, hartid = csr_read(mhartid);
+	int i, hartid = csr_read(CSR_MHARTID);
 
 	for (i = 0; i < total_triggers; i++) {
 		if (!trigger_modules[hartid][i].used
@@ -120,7 +120,7 @@ static int trigger_get_free(void)
 
 static int trigger_get_used_by_type(int type)
 {
-	int i, hartid = csr_read(mhartid);
+	int i, hartid = csr_read(CSR_MHARTID);
 
 	for (i = 0; i < total_triggers; i++) {
 		if (trigger_modules[hartid][i].type == type
@@ -148,7 +148,7 @@ int trigger_set_icount(uintptr_t count, uintptr_t  m, uintptr_t s,
 {
 	uintptr_t val;
 	int num, err;
-	int hartid = csr_read(mhartid);
+	int hartid = csr_read(CSR_MHARTID);
 
 	num = trigger_get_available(TRIGGER_TYPE_ICOUNT);
 
@@ -197,7 +197,7 @@ int trigger_set_itrigger(uintptr_t interrupt, uintptr_t m, uintptr_t s,
 {
 	uintptr_t val;
 	int num, err;
-	int hartid = csr_read(mhartid);
+	int hartid = csr_read(CSR_MHARTID);
 
 	num = trigger_get_available(TRIGGER_TYPE_ITRIGGER);
 
@@ -245,7 +245,7 @@ int trigger_set_etrigger(uintptr_t exception, uintptr_t m, uintptr_t s,
 {
 	uintptr_t val;
 	int num, err;
-	int hartid = csr_read(mhartid);
+	int hartid = csr_read(CSR_MHARTID);
 
 	num = trigger_get_available(TRIGGER_TYPE_ETRIGGER);
 

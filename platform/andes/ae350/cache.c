@@ -14,24 +14,24 @@
 
 uintptr_t mcall_set_mcache_ctl(unsigned long input)
 {
-	csr_clear(CSR_MCACHECTL, V5_MCACHE_CTL_MASK);
-	csr_write(CSR_MCACHECTL, input);
+	csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_MASK);
+	csr_write(CSR_MCACHE_CTL, input);
 	return 0;
 }
 
 uintptr_t mcall_set_mmisc_ctl(unsigned long input)
 {
-	csr_clear(CSR_MMISCCTL, V5_MMISC_CTL_MASK);
-	csr_write(CSR_MMISCCTL, input);
+	csr_clear(CSR_MMISC_CTL, V5_MMISC_CTL_MASK);
+	csr_write(CSR_MMISC_CTL, input);
 	return 0;
 }
 
 uintptr_t mcall_icache_op(unsigned int enable)
 {
 	if (enable) {
-		csr_set(CSR_MCACHECTL, V5_MCACHE_CTL_IC_EN);
+		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_IC_EN);
 	} else {
-		csr_clear(CSR_MCACHECTL, V5_MCACHE_CTL_IC_EN);
+		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_IC_EN);
 		asm volatile("fence.i\n\t");
 	}
 	return 0;
@@ -40,9 +40,9 @@ uintptr_t mcall_icache_op(unsigned int enable)
 uintptr_t mcall_dcache_op(unsigned int enable)
 {
 	if (enable) {
-		csr_set(CSR_MCACHECTL, V5_MCACHE_CTL_DC_EN);
+		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
 	} else {
-		csr_clear(CSR_MCACHECTL, V5_MCACHE_CTL_DC_EN);
+		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
 		csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
 	}
 	return 0;
@@ -51,9 +51,9 @@ uintptr_t mcall_dcache_op(unsigned int enable)
 uintptr_t mcall_l1_cache_i_prefetch_op(unsigned long enable)
 {
 	if (enable) {
-		csr_set(CSR_MCACHECTL, V5_MCACHE_CTL_L1I_PREFETCH_EN);
+		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1I_PREFETCH_EN);
 	} else {
-		csr_clear(CSR_MCACHECTL, V5_MCACHE_CTL_L1I_PREFETCH_EN);
+		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1I_PREFETCH_EN);
 	}
 	return 0;
 }
@@ -61,9 +61,9 @@ uintptr_t mcall_l1_cache_i_prefetch_op(unsigned long enable)
 uintptr_t mcall_l1_cache_d_prefetch_op(unsigned long enable)
 {
 	if (enable) {
-		csr_set(CSR_MCACHECTL, V5_MCACHE_CTL_L1D_PREFETCH_EN);
+		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1D_PREFETCH_EN);
 	} else {
-		csr_clear(CSR_MCACHECTL, V5_MCACHE_CTL_L1D_PREFETCH_EN);
+		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1D_PREFETCH_EN);
 	}
 	return 0;
 }
@@ -71,9 +71,9 @@ uintptr_t mcall_l1_cache_d_prefetch_op(unsigned long enable)
 uintptr_t mcall_non_blocking_load_store(unsigned long enable)
 {
 	if (enable) {
-		csr_set(CSR_MCACHECTL, V5_MMISC_CTL_NON_BLOCKING_EN);
+		csr_set(CSR_MCACHE_CTL, V5_MMISC_CTL_NON_BLOCKING_EN);
 	} else {
-		csr_clear(CSR_MCACHECTL, V5_MMISC_CTL_NON_BLOCKING_EN);
+		csr_clear(CSR_MCACHE_CTL, V5_MMISC_CTL_NON_BLOCKING_EN);
 	}
 	return 0;
 }
@@ -81,9 +81,9 @@ uintptr_t mcall_non_blocking_load_store(unsigned long enable)
 uintptr_t mcall_write_around(unsigned long enable)
 {
 	if (enable) {
-		csr_set(CSR_MCACHECTL, V5_MCACHE_CTL_DC_WAROUND_1_EN);
+		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_WAROUND_1_EN);
 	} else {
-		csr_clear(CSR_MCACHECTL, V5_MCACHE_CTL_DC_WAROUND_1_EN);
+		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_WAROUND_1_EN);
 	}
 	return 0;
 }

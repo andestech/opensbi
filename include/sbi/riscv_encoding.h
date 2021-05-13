@@ -250,6 +250,7 @@
 #define CSR_HPMCOUNTER29		0xc1d
 #define CSR_HPMCOUNTER30		0xc1e
 #define CSR_HPMCOUNTER31		0xc1f
+
 #define CSR_CYCLEH			0xc80
 #define CSR_TIMEH			0xc81
 #define CSR_INSTRETH			0xc82
@@ -582,6 +583,7 @@
 #define CSR_TDATA1			0x7a1
 #define CSR_TDATA2			0x7a2
 #define CSR_TDATA3			0x7a3
+#define CSR_TINFO			0x7a4
 
 /* Debug Mode Registers */
 #define CSR_DCSR			0x7b0

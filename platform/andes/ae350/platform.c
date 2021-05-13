@@ -32,6 +32,7 @@ static struct plic_data plic = {
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
 int has_l2;
+
 /* Platform final initialization. */
 static int ae350_final_init(bool cold_boot)
 {
@@ -234,10 +235,10 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 	int ret = 0;
 	switch (funcid) {
 	case SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS:
-		*out_value = csr_read(CSR_MCACHECTL);
+		*out_value = csr_read(CSR_MCACHE_CTL);
 		break;
 	case SBI_EXT_ANDES_GET_MMISC_CTL_STATUS:
-		*out_value = csr_read(CSR_MMISCCTL);
+		*out_value = csr_read(CSR_MMISC_CTL);
 		break;
 	case SBI_EXT_ANDES_SET_MCACHE_CTL:
 		ret = mcall_set_mcache_ctl(regs->a0);
@@ -270,10 +271,10 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		ret = mcall_set_pfm();
 		break;
 	case SBI_EXT_ANDES_READ_POWERBRAKE:
-		*out_value = csr_read(CSR_MPFTCTL);
+		*out_value = csr_read(CSR_MPFT_CTL);
 		break;
 	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
-		csr_write(CSR_MPFTCTL, args[0]);
+		csr_write(CSR_MPFT_CTL, args[0]);
 		break;
 	case SBI_EXT_ANDES_SUSPEND_PREPARE:
 		ret = mcall_suspend_prepare(args[0], args[1]);
@@ -294,7 +295,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		mcall_free_pma(args[0]);
 		break;
 	case SBI_EXT_ANDES_PROBE_PMA:
-		*out_value = ((csr_read(CSR_MMSCCFG) & 0x40000000) != 0);
+		*out_value = ((csr_read(CSR_MMSC_CFG) & 0x40000000) != 0);
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
