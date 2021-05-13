@@ -11,43 +11,126 @@
 #ifndef _AE350_PLATFORM_H_
 #define _AE350_PLATFORM_H_
 
-#define AE350_HART_COUNT		4
+#define AE350_HART_COUNT        4
 
-#define AE350_PLIC_ADDR			0xe4000000
-#define AE350_PLIC_NUM_SOURCES		71
+#define AE350_PLIC_ADDR         0xe4000000
+#define AE350_PLIC_NUM_SOURCES      71
 
-#define AE350_PLICSW_ADDR		0xe6400000
+#define AE350_PLICSW_ADDR       0xe6400000
 
-#define AE350_PLMT_ADDR			0xe6000000
+#define AE350_PLMT_ADDR         0xe6000000
 
-#define AE350_L2C_ADDR			0xe0500000
+#define AE350_L2C_ADDR          0xe0500000
 
-#define AE350_UART_ADDR_OFFSET		0x20
-#define AE350_UART_ADDR			(0xf0300000 + AE350_UART_ADDR_OFFSET)
-#define AE350_UART_FREQUENCY		19660800
-#define AE350_UART_BAUDRATE		38400
-#define AE350_UART_REG_SHIFT		2
-#define AE350_UART_REG_WIDTH		0
+#define AE350_UART_ADDR_OFFSET      0x20
+#define AE350_UART_ADDR         (0xf0300000 + AE350_UART_ADDR_OFFSET)
+#define AE350_UART_FREQUENCY        19660800
+#define AE350_UART_BAUDRATE     38400
+#define AE350_UART_REG_SHIFT        2
+#define AE350_UART_REG_WIDTH        0
 
-/*Memory and Miscellaneous Registers*/
-#define CSR_MILMB		0x7c0
-#define CSR_MDLMB		0x7c1
-#define CSR_MECC_CDOE		0x7c2
-#define CSR_MNVEC		0x7c3
-#define CSR_MPFTCTL		0x7c5
-#define CSR_MDCAUSE		0x7c9
-#define CSR_MCACHECTL		0x7ca
-#define CSR_MCCTLBEGINADDR	0x7cb
-#define CSR_MCCTLCOMMAND	0x7cc
-#define CSR_MCCTLDATA		0x7cc
-#define CSR_SCCTLDATA		0x9cd
-#define CSR_UCCTLBEGINADDR	0x80c
-#define CSR_MMISCCTL		0x7d0
+/***********************************
+ * AndeStar V5 machine mode CSRs
+ **********************************/
 
-#define CSR_SDCAUSE		0x9c9
+/* Configuration Registers */
+#define CSR_MICM_CFG        0xfc0
+#define CSR_MDCM_CFG        0xfc1
+#define CSR_MMSC_CFG        0xfc2
+#define CSR_MMSC_CFG2       0xfc3
+#define CSR_MVEC_CFG        0xfc7
 
-// #define ANDES_SBI_PLATFORM_DEFAULT_FEATURES 	(SBI_PLATFORM_HAS_TIMER_VALUE | SBI_PLATFORM_HAS_HART_HOTPLUG | SBI_PLATFORM_HAS_MFAULTS_DELEGATION | SBI_PLATFORM_HAS_HART_SECONDARY_BOOT)
+/* Crash Debug CSRs */
+#define CSR_MCRASH_STATESAVE    0xfc8
+#define CSR_MSTATUS_CRASHSAVE   0xfc9
 
+/* Memory CSRs */
+#define CSR_MILMB           0x7c0
+#define CSR_MDLMB           0x7c1
+#define CSR_MECC_CODE       0x7c2
+#define CSR_MNVEC           0x7c3
+#define CSR_MCACHE_CTL      0x7ca
+#define CSR_MCCTLBEGINADDR  0x7cb
+#define CSR_MCCTLCOMMAND    0x7cc
+#define CSR_MCCTLDATA       0x7cd
+#define CSR_MPPIB           0x7f0
+#define CSR_MFIOB           0x7f1
+
+/* Hardware Stack Protection & Recording */
+#define CSR_MHSP_CTL        0x7c6
+#define CSR_MSP_BOUND       0x7c7
+#define CSR_MSP_BASE        0x7c8
+
+/* Trap related CSR */
+#define CSR_MXSTATUS        0x7c4
+#define CSR_MDCAUSE         0x7c9
+#define CSR_MSLIDELEG       0x7d5
+#define CSR_MSAVESTATUS     0x7d6
+#define CSR_MSAVEEPC1       0x7d7
+#define CSR_MSAVECAUSE1     0x7d8
+#define CSR_MSAVEEPC2       0x7d9
+#define CSR_MSAVECAUSE2     0x7da
+#define CSR_MSAVEDCAUSE1    0x7db
+#define CSR_MSAVEDCAUSE2    0x7dc
+
+/* Control CSRs */
+#define CSR_MPFT_CTL        0x7c5
+#define CSR_MMISC_CTL       0x7d0
+#define CSR_MCLK_CTL        0x7df
+
+/* Counter related CSRs */
+#define CSR_MCOUNTERWEN        0x7ce
+#define CSR_MCOUNTERINTEN      0x7cf
+#define CSR_MCOUNTERMASK_M     0x7d1
+#define CSR_MCOUNTERMASK_S     0x7d2
+#define CSR_MCOUNTERMASK_U     0x7d3
+#define CSR_MCOUNTEROVF        0x7d4
+
+/***********************************
+ * AndeStar V5 supervisor mode CSRs
+ **********************************/
+
+/* Supervisor Trap Related */
+#define CSR_SLIE            0x9c4
+#define CSR_SLIP            0x9c5
+#define CSR_SDCAUSE         0x9c9
+
+/* Supervisor Counter Related */
+#define CSR_SCOUNTERINTEN   0x9cf
+#define CSR_SCOUNTERMASK_M  0x9d1
+#define CSR_SCOUNTERMASK_S  0x9d2
+#define CSR_SCOUNTERMASK_U  0x9d3
+#define CSR_SCOUNTEROVF     0x9d4
+#define CSR_SCOUNTINHIBIT   0x9e0
+#define CSR_SHPMEVENT3      0x9e3
+#define CSR_SHPMEVENT4      0x9e4
+#define CSR_SHPMEVENT5      0x9e5
+#define CSR_SHPMEVENT6      0x9e6
+
+/* Supervisor Control */
+#define CSR_SCCTLDATA       0x9cd
+#define CSR_SMISC_CTL       0x9d0
+
+/***********************************
+ * AndeStar V5 user mode CSRs
+ **********************************/
+#define CSR_UITB            0x800
+#define CSR_UCODE           0x801
+#define CSR_UDCAUSE         0x809
+#define CSR_UCCTLBEGINADDR  0x80b
+#define CSR_UCCTLCOMMAND    0x80c
+#define CSR_WFE             0x810
+#define CSR_SLEEPVALUE      0x811
+#define CSR_TXEVT           0x812
+
+/* #define ANDES_SBI_PLATFORM_DEFAULT_FEATURES \
+ *		(SBI_PLATFORM_HAS_TIMER_VALUE |\
+ *		SBI_PLATFORM_HAS_HART_HOTPLUG |\
+ *		SBI_PLATFORM_HAS_MFAULTS_DELEGATION |\
+ *		SBI_PLATFORM_HAS_HART_SECONDARY_BOOT)
+ */
+
+#ifndef __ASSEMBLY__
 enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS = 0,
 	SBI_EXT_ANDES_GET_MMISC_CTL_STATUS,
@@ -73,20 +156,12 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_PROBE_PMA,
 	SBI_EXT_ANDES_DCACHE_WBINVAL_ALL,
 };
+#endif
 
 /* MISC */
 #define IRQ_PFM         18
 #define MIP_MOVFIP      (1 << IRQ_PFM)
 #define MIP_SOVFIP      (1 << IRQ_PFM)
-
-/* Supervisor Trap Related Registers */
-#define CSR_SLIE	0x9c4
-#define CSR_SLIP	0x9c5
-
-/* Configuration Control & Status Registers  */
-#define CSR_MICMCFG	0xfc0
-#define CSR_MDCMCFG	0xfc1
-#define CSR_MMSCCFG	0xfc2
 
 /* nds v5 mmisc_ctl register*/
 #define V5_MMISC_CTL_VEC_PLIC_OFFSET            1

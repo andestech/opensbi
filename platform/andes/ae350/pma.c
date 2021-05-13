@@ -28,7 +28,7 @@ void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size)
 	int i, power = 0;
 	unsigned long size_tmp, shift = 0, pmacfg_val;
 	char *pmaxcfg;
-	unsigned long mmsc = csr_read(CSR_MMSCCFG);
+	unsigned long mmsc = csr_read(CSR_MMSC_CFG);
 
 	if ((mmsc & PMA_MMSC_CFG) == 0)
 		return;

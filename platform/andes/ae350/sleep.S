@@ -1,10 +1,13 @@
+#include <sbi/riscv_encoding.h>
 #include "smu.h"
+#include "platform.h"
 
 .text
 .global cpu_suspend2ram
 .global cpu_resume
 
 cpu_suspend2ram:
+
 	# backup cpu register
 	# store x1 ~ x31 to stack
 	PUSH(x1)
@@ -40,37 +43,37 @@ cpu_suspend2ram:
 	PUSH(x31)
 
 	# Push RISC-V m-mode reg
-	PUSH_CSR(mstatus)
-	PUSH_CSR(misa)
-	PUSH_CSR(medeleg)
-	PUSH_CSR(mideleg)
-	PUSH_CSR(mie)
-	PUSH_CSR(mtvec)
-	PUSH_CSR(mscratch)
-	PUSH_CSR(mepc)
-	PUSH_CSR(mcause)
-	PUSH_CSR(mtval)
-	PUSH_CSR(mip)
-	PUSH_CSR(mcounteren)
-	PUSH_CSR(mcountinhibit)
+	PUSH_CSR(CSR_MSTATUS)
+	PUSH_CSR(CSR_MISA)
+	PUSH_CSR(CSR_MEDELEG)
+	PUSH_CSR(CSR_MIDELEG)
+	PUSH_CSR(CSR_MIE)
+	PUSH_CSR(CSR_MTVEC)
+	PUSH_CSR(CSR_MSCRATCH)
+	PUSH_CSR(CSR_MEPC)
+	PUSH_CSR(CSR_MCAUSE)
+	PUSH_CSR(CSR_MTVAL)
+	PUSH_CSR(CSR_MIP)
+	PUSH_CSR(CSR_MCOUNTEREN)
+	PUSH_CSR(CSR_MCOUNTINHIBIT)
 
 	# Push Andes m-mode reg
 	#PUSH_CSR(milmb)
 	#PUSH_CSR(mdlmb)
 	#PUSH_CSR(mecc_code)
 	#PUSH_CSR(mnvec)
-	PUSH_CSR(mcache_ctl)
-	PUSH_CSR(mcctlbeginaddr)
-	PUSH_CSR(mcctlcommand)
-	PUSH_CSR(mcctldata)
+	PUSH_CSR(CSR_MCACHE_CTL)
+	PUSH_CSR(CSR_MCCTLBEGINADDR)
+	PUSH_CSR(CSR_MCCTLCOMMAND)
+	PUSH_CSR(CSR_MCCTLDATA)
 	#PUSH_CSR(mppib)
 	#PUSH_CSR(mfiob)
-	PUSH_CSR(mhsp_ctl)
-	PUSH_CSR(msp_bound)
-	PUSH_CSR(msp_base)
-	PUSH_CSR(mxstatus)
-	PUSH_CSR(mdcause)
-	PUSH_CSR(mslideleg)
+	PUSH_CSR(CSR_MHSP_CTL)
+	PUSH_CSR(CSR_MSP_BOUND)
+	PUSH_CSR(CSR_MSP_BASE)
+	PUSH_CSR(CSR_MXSTATUS)
+	PUSH_CSR(CSR_MDCAUSE)
+	PUSH_CSR(CSR_MSLIDELEG)
 	#PUSH_CSR(msavestatus)
 	#PUSH_CSR(msaveepc1)
 	#PUSH_CSR(msavecause1)
@@ -78,14 +81,14 @@ cpu_suspend2ram:
 	#PUSH_CSR(msavecause2)
 	#PUSH_CSR(msavedcause1)
 	#PUSH_CSR(msavedcause2)
-	PUSH_CSR(mpft_ctl)
-	PUSH_CSR(mmisc_ctl)
-	PUSH_CSR(mcounterwen)
-	PUSH_CSR(mcounterinten)
-	PUSH_CSR(mcountermask_m)
-	PUSH_CSR(mcountermask_s)
-	PUSH_CSR(mcountermask_u)
-	PUSH_CSR(mcounterovf)
+	PUSH_CSR(CSR_MPFT_CTL)
+	PUSH_CSR(CSR_MMISC_CTL)
+	PUSH_CSR(CSR_MCOUNTERWEN)
+	PUSH_CSR(CSR_MCOUNTERINTEN)
+	PUSH_CSR(CSR_MCOUNTERMASK_M)
+	PUSH_CSR(CSR_MCOUNTERMASK_S)
+	PUSH_CSR(CSR_MCOUNTERMASK_U)
+	PUSH_CSR(CSR_MCOUNTEROVF)
 	#PUSH_CSR(mirq_entry)
 	#PUSH_CSR(mintsel_jal)
 	#PUSH_CSR(pushmcause)
@@ -118,63 +121,63 @@ cpu_suspend2ram:
 #	PUSH_CSR(pmaaddr15)
 
 	# Push RISC-V s-mode reg
-	PUSH_CSR(sstatus)
+	PUSH_CSR(CSR_SSTATUS)
 	#PUSH_CSR(sedeleg)
 	#PUSH_CSR(sideleg)
-	PUSH_CSR(sie)
-	PUSH_CSR(stvec)
-	PUSH_CSR(scounteren)
-	PUSH_CSR(sscratch)
-	PUSH_CSR(sepc)
-	PUSH_CSR(scause)
-	PUSH_CSR(stval)
-	PUSH_CSR(sip)
-	PUSH_CSR(satp)
+	PUSH_CSR(CSR_SIE)
+	PUSH_CSR(CSR_STVEC)
+	PUSH_CSR(CSR_SCOUNTEREN)
+	PUSH_CSR(CSR_SSCRATCH)
+	PUSH_CSR(CSR_SEPC)
+	PUSH_CSR(CSR_SCAUSE)
+	PUSH_CSR(CSR_STVAL)
+	PUSH_CSR(CSR_SIP)
+	PUSH_CSR(CSR_SATP)
 
 	# Push Andes s-mode reg
-	PUSH_CSR(slie)
-	PUSH_CSR(slip)
-	PUSH_CSR(sdcause)
-	PUSH_CSR(scounterinten)
-	PUSH_CSR(scountermask_m)
-	PUSH_CSR(scountermask_s)
-	PUSH_CSR(scountermask_u)
-	PUSH_CSR(scounterovf)
-	PUSH_CSR(scountinhibit)
-	PUSH_CSR(scctldata)
+	PUSH_CSR(CSR_SLIE)
+	PUSH_CSR(CSR_SLIP)
+	PUSH_CSR(CSR_SDCAUSE)
+	PUSH_CSR(CSR_SCOUNTERINTEN)
+	PUSH_CSR(CSR_SCOUNTERMASK_M)
+	PUSH_CSR(CSR_SCOUNTERMASK_S)
+	PUSH_CSR(CSR_SCOUNTERMASK_U)
+	PUSH_CSR(CSR_SCOUNTEROVF)
+	PUSH_CSR(CSR_SCOUNTINHIBIT)
+	PUSH_CSR(CSR_SCCTLDATA)
 	#PUSH_CSR(smisc_ctl)
 
 	# Push pmp
 #if __riscv_xlen == 64
-	PUSH_CSR(pmpcfg0)
-	PUSH_CSR(pmpcfg2)
+	PUSH_CSR(CSR_PMPCFG0)
+	PUSH_CSR(CSR_PMPCFG2)
 #else
-	PUSH_CSR(pmpcfg0)
-	PUSH_CSR(pmpcfg1)
-	PUSH_CSR(pmpcfg2)
-	PUSH_CSR(pmpcfg3)
+	PUSH_CSR(CSR_PMPCFG0)
+	PUSH_CSR(CSR_PMPCFG1)
+	PUSH_CSR(CSR_PMPCFG2)
+	PUSH_CSR(CSR_PMPCFG3)
 #endif
-	PUSH_CSR(pmpaddr0)
-	PUSH_CSR(pmpaddr1)
-	PUSH_CSR(pmpaddr2)
-	PUSH_CSR(pmpaddr3)
-	PUSH_CSR(pmpaddr4)
-	PUSH_CSR(pmpaddr5)
-	PUSH_CSR(pmpaddr6)
-	PUSH_CSR(pmpaddr7)
-	PUSH_CSR(pmpaddr8)
-	PUSH_CSR(pmpaddr9)
-	PUSH_CSR(pmpaddr10)
-	PUSH_CSR(pmpaddr11)
-	PUSH_CSR(pmpaddr12)
-	PUSH_CSR(pmpaddr13)
-	PUSH_CSR(pmpaddr14)
-	PUSH_CSR(pmpaddr15)
+	PUSH_CSR(CSR_PMPADDR0)
+	PUSH_CSR(CSR_PMPADDR1)
+	PUSH_CSR(CSR_PMPADDR2)
+	PUSH_CSR(CSR_PMPADDR3)
+	PUSH_CSR(CSR_PMPADDR4)
+	PUSH_CSR(CSR_PMPADDR5)
+	PUSH_CSR(CSR_PMPADDR6)
+	PUSH_CSR(CSR_PMPADDR7)
+	PUSH_CSR(CSR_PMPADDR8)
+	PUSH_CSR(CSR_PMPADDR9)
+	PUSH_CSR(CSR_PMPADDR10)
+	PUSH_CSR(CSR_PMPADDR11)
+	PUSH_CSR(CSR_PMPADDR12)
+	PUSH_CSR(CSR_PMPADDR13)
+	PUSH_CSR(CSR_PMPADDR14)
+	PUSH_CSR(CSR_PMPADDR15)
 
 	# store sp to pcs scratch for each core
 	li	t0, 0x20
 	li	t1, 3
-	csrr	t2, mhartid
+	csrr	t2, CSR_MHARTID
 	add	t1, t1, t2
 	mul	t0, t0, t1
 	addi	t0, t0,	0x84
@@ -184,7 +187,7 @@ cpu_suspend2ram:
 
 	# store reset vector
 	li	t0, 0x4
-	csrr	t1, mhartid
+	csrr	t1, CSR_MHARTID
 	mul	t0, t0, t1
 	addi	t0, t0, 0x50
 	li	t1, SMU_BASE
@@ -193,10 +196,10 @@ cpu_suspend2ram:
 	sw	t1, 0(t0)
 
 	# flush dcache
-	csrw	ucctlcommand, 0x6
+	csrw	CSR_UCCTLCOMMAND, 0x6
 
 	# disable d-cache
-	csrrc	t0, mcache_ctl, 0x2
+	csrrc	t0, CSR_MCACHE_CTL, 0x2
 
 	# check if l2 exist
 	la	t0, has_l2
@@ -208,7 +211,7 @@ cpu_suspend2ram:
 	bne	t0, t1, no_l2
 
 	# check if it is core 0
-	csrr	t1, mhartid
+	csrr	t1, CSR_MHARTID
 	bnez	t1, no_l2
 
 	# flush and disable l2 by core 0
@@ -241,8 +244,9 @@ test_sec:
 
 .align 2
 cpu_resume:
+
 	# Check if it come from NMI, go resume if not.
-	csrr	t0, mcause
+	csrr	t0, CSR_MCAUSE
 	beqz	t0, go_resume
 cpu_hang:
 	j	cpu_hang
@@ -250,7 +254,7 @@ go_resume:
 	# load sp
 	li	t0, 0x20
 	li	t1, 3
-	csrr	t2, mhartid
+	csrr	t2, CSR_MHARTID
 	add	t1, t1, t2
 	mul	t0, t0, t1
 	addi	t0, t0, 0x84
@@ -260,57 +264,57 @@ go_resume:
 
 	# resume cpu regisger
 	# Pop pmp
-	POP_CSR(pmpaddr15)
-	POP_CSR(pmpaddr14)
-	POP_CSR(pmpaddr13)
-	POP_CSR(pmpaddr12)
-	POP_CSR(pmpaddr11)
-	POP_CSR(pmpaddr10)
-	POP_CSR(pmpaddr9)
-	POP_CSR(pmpaddr8)
-	POP_CSR(pmpaddr7)
-	POP_CSR(pmpaddr6)
-	POP_CSR(pmpaddr5)
-	POP_CSR(pmpaddr4)
-	POP_CSR(pmpaddr3)
-	POP_CSR(pmpaddr2)
-	POP_CSR(pmpaddr1)
-	POP_CSR(pmpaddr0)
+	POP_CSR(CSR_PMPADDR15)
+	POP_CSR(CSR_PMPADDR14)
+	POP_CSR(CSR_PMPADDR13)
+	POP_CSR(CSR_PMPADDR12)
+	POP_CSR(CSR_PMPADDR11)
+	POP_CSR(CSR_PMPADDR10)
+	POP_CSR(CSR_PMPADDR9)
+	POP_CSR(CSR_PMPADDR8)
+	POP_CSR(CSR_PMPADDR7)
+	POP_CSR(CSR_PMPADDR6)
+	POP_CSR(CSR_PMPADDR5)
+	POP_CSR(CSR_PMPADDR4)
+	POP_CSR(CSR_PMPADDR3)
+	POP_CSR(CSR_PMPADDR2)
+	POP_CSR(CSR_PMPADDR1)
+	POP_CSR(CSR_PMPADDR0)
 #if __riscv_xlen == 64
-	POP_CSR(pmpcfg2)
-	POP_CSR(pmpcfg0)
+	POP_CSR(CSR_PMPCFG2)
+	POP_CSR(CSR_PMPCFG0)
 #else
-	POP_CSR(pmpcfg3)
-	POP_CSR(pmpcfg2)
-	POP_CSR(pmpcfg1)
-	POP_CSR(pmpcfg0)
+	POP_CSR(CSR_PMPCFG3)
+	POP_CSR(CSR_PMPCFG2)
+	POP_CSR(CSR_PMPCFG1)
+	POP_CSR(CSR_PMPCFG0)
 #endif
 	# Pop Andes s-mode reg
 	#POP_CSR(smisc_ctl)
-	POP_CSR(scctldata)
-	POP_CSR(scountinhibit)
-	POP_CSR(scounterovf)
-	POP_CSR(scountermask_u)
-	POP_CSR(scountermask_s)
-	POP_CSR(scountermask_m)
-	POP_CSR(scounterinten)
-	POP_CSR(sdcause)
-	POP_CSR(slip)
-	POP_CSR(slie)
+	POP_CSR(CSR_SCCTLDATA)
+	POP_CSR(CSR_SCOUNTINHIBIT)
+	POP_CSR(CSR_SCOUNTEROVF)
+	POP_CSR(CSR_SCOUNTERMASK_U)
+	POP_CSR(CSR_SCOUNTERMASK_S)
+	POP_CSR(CSR_SCOUNTERMASK_M)
+	POP_CSR(CSR_SCOUNTERINTEN)
+	POP_CSR(CSR_SDCAUSE)
+	POP_CSR(CSR_SLIP)
+	POP_CSR(CSR_SLIE)
 
 	# Pop RISC-V s-mode reg
-	POP_CSR(satp)
-	POP_CSR(sip)
-	POP_CSR(stval)
-	POP_CSR(scause)
-	POP_CSR(sepc)
-	POP_CSR(sscratch)
-	POP_CSR(scounteren)
-	POP_CSR(stvec)
-	POP_CSR(sie)
+	POP_CSR(CSR_SATP)
+	POP_CSR(CSR_SIP)
+	POP_CSR(CSR_STVAL)
+	POP_CSR(CSR_SCAUSE)
+	POP_CSR(CSR_SEPC)
+	POP_CSR(CSR_SSCRATCH)
+	POP_CSR(CSR_SCOUNTEREN)
+	POP_CSR(CSR_STVEC)
+	POP_CSR(CSR_SIE)
 	#POP_CSR(sideleg)
 	#POP_CSR(sedeleg)
-	POP_CSR(sstatus)
+	POP_CSR(CSR_SSTATUS)
 
 	# Pop Andes m-mode reg
 #	POP_CSR(pmaaddr15)
@@ -343,14 +347,14 @@ go_resume:
 	#POP_CSR(pushmcause)
 	#POP_CSR(mintsel_jal)
 	#POP_CSR(mirq_entry)
-	POP_CSR(mcounterovf)
-	POP_CSR(mcountermask_u)
-	POP_CSR(mcountermask_s)
-	POP_CSR(mcountermask_m)
-	POP_CSR(mcounterinten)
-	POP_CSR(mcounterwen)
-	POP_CSR(mmisc_ctl)
-	POP_CSR(mpft_ctl)
+	POP_CSR(CSR_MCOUNTEROVF)
+	POP_CSR(CSR_MCOUNTERMASK_U)
+	POP_CSR(CSR_MCOUNTERMASK_S)
+	POP_CSR(CSR_MCOUNTERMASK_M)
+	POP_CSR(CSR_MCOUNTERINTEN)
+	POP_CSR(CSR_MCOUNTERWEN)
+	POP_CSR(CSR_MMISC_CTL)
+	POP_CSR(CSR_MPFT_CTL)
 	#POP_CSR(msavedcause2)
 	#POP_CSR(msavedcause1)
 	#POP_CSR(msavecause2)
@@ -358,37 +362,37 @@ go_resume:
 	#POP_CSR(msavecause1)
 	#POP_CSR(msaveepc1)
 	#POP_CSR(msavestatus)
-	POP_CSR(mslideleg)
-	POP_CSR(mdcause)
-	POP_CSR(mxstatus)
-	POP_CSR(msp_base)
-	POP_CSR(msp_bound)
-	POP_CSR(mhsp_ctl)
+	POP_CSR(CSR_MSLIDELEG)
+	POP_CSR(CSR_MDCAUSE)
+	POP_CSR(CSR_MXSTATUS)
+	POP_CSR(CSR_MSP_BASE)
+	POP_CSR(CSR_MSP_BOUND)
+	POP_CSR(CSR_MHSP_CTL)
 	#POP_CSR(mfiob)
 	#POP_CSR(mppib)
-	POP_CSR(mcctldata)
-	POP_CSR(mcctlcommand)
-	POP_CSR(mcctlbeginaddr)
-	POP_CSR(mcache_ctl)
+	POP_CSR(CSR_MCCTLDATA)
+	POP_CSR(CSR_MCCTLCOMMAND)
+	POP_CSR(CSR_MCCTLBEGINADDR)
+	POP_CSR(CSR_MCACHE_CTL)
 	#POP_CSR(mnvec)
 	#POP_CSR(mecc_code)
 	#POP_CSR(mdlmb)
 	#POP_CSR(milmb)
 
 	# Pop RISC-V m-mode reg
-	POP_CSR(mcountinhibit)
-	POP_CSR(mcounteren)
-	POP_CSR(mip)
-	POP_CSR(mtval)
+	POP_CSR(CSR_MCOUNTINHIBIT)
+	POP_CSR(CSR_MCOUNTEREN)
+	POP_CSR(CSR_MIP)
+	POP_CSR(CSR_MTVAL)
 	POP_CSR(mcause)
-	POP_CSR(mepc)
-	POP_CSR(mscratch)
-	POP_CSR(mtvec)
-	POP_CSR(mie)
-	POP_CSR(mideleg)
-	POP_CSR(medeleg)
-	POP_CSR(misa)
-	POP_CSR(mstatus)
+	POP_CSR(CSR_MCAUSE)
+	POP_CSR(CSR_MSCRATCH)
+	POP_CSR(CSR_MTVEC)
+	POP_CSR(CSR_MIE)
+	POP_CSR(CSR_MIDELEG)
+	POP_CSR(CSR_MEDELEG)
+	POP_CSR(CSR_MISA)
+	POP_CSR(CSR_MSTATUS)
 
 	# Pop x1~x31
 	POP(x31)
@@ -427,7 +431,7 @@ go_resume:
 	li	t0, -1
 	beq	t0, t1, no_enable_l2
 
-	csrr    t0, mhartid
+	csrr    t0, CSR_MHARTID
 	bnez	t0, no_enable_l2
 
 	# enable L2
@@ -438,5 +442,5 @@ go_resume:
 
 no_enable_l2:
 	# enable d-cache
-	csrrs	t0, mcache_ctl, 0x2
+	csrrs	t0, CSR_MCACHE_CTL, 0x2
 	ret

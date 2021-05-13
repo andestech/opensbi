@@ -44,24 +44,24 @@ static int ae350_pre_init(bool cold_boot)
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 
 	/* enable L1 cache */
-	uintptr_t mcache_ctl_val = csr_read(CSR_MCACHECTL);
-	uintptr_t mmisc_ctl_val = csr_read(CSR_MMISCCTL);
+	uintptr_t mcache_ctl_val = csr_read(CSR_MCACHE_CTL);
+	uintptr_t mmisc_ctl_val = csr_read(CSR_MMISC_CTL);
 
 	if (is_andestar45_series()) {
 		if (!(mcache_ctl_val & V5_MCACHE_CTL_DC_COHEN_EN))
 			mcache_ctl_val |= V5_MCACHE_CTL_DC_COHEN_EN;
 
-		csr_write(CSR_MCACHECTL, mcache_ctl_val);
+		csr_write(CSR_MCACHE_CTL, mcache_ctl_val);
 
 		/*
 		 * Check DC_COHEN_EN, if cannot write to mcache_ctl,
 		 * we assume this bitmap not support L2 CM
 		 */
-		mcache_ctl_val = csr_read(CSR_MCACHECTL);
+		mcache_ctl_val = csr_read(CSR_MCACHE_CTL);
 		if ((mcache_ctl_val & V5_MCACHE_CTL_DC_COHEN_EN)) {
 			/* Wait for DC_COHSTA bit be set */
 			while (!(mcache_ctl_val & V5_MCACHE_CTL_DC_COHSTA_EN))
-				mcache_ctl_val = csr_read(CSR_MCACHECTL);
+				mcache_ctl_val = csr_read(CSR_MCACHE_CTL);
 		}
 	}
 
@@ -80,13 +80,13 @@ static int ae350_pre_init(bool cold_boot)
 	if (!(mcache_ctl_val & V5_MCACHE_CTL_DC_WAROUND_1_EN))
 		mcache_ctl_val |= V5_MCACHE_CTL_DC_WAROUND_1_EN;
 
-	csr_write(CSR_MCACHECTL, mcache_ctl_val);
+	csr_write(CSR_MCACHE_CTL, mcache_ctl_val);
 
 	/* enable non-blocking load */
 	if (!(mmisc_ctl_val & V5_MMISC_CTL_NON_BLOCKING_EN))
 		mmisc_ctl_val |= V5_MMISC_CTL_NON_BLOCKING_EN;
 
-	csr_write(CSR_MMISCCTL, mmisc_ctl_val);
+	csr_write(CSR_MMISC_CTL, mmisc_ctl_val);
 
 	/* enable L2 cache */
 	uint32_t *l2c_ctl_base = (void *)AE350_L2C_ADDR + V5_L2C_CTL_OFFSET;
@@ -109,13 +109,13 @@ static int ae350_pre_init(bool cold_boot)
 static int ae350_early_init(bool cold_boot)
 {
 	/* Machine counter write enable */
-	csr_write(mcounterwen, 0xfffffffd);
+	csr_write(CSR_MCOUNTERWEN, 0xfffffffd);
 	/* Supervisor local interrupt enable */
-	csr_write(slie, MIP_MOVFIP);
+	csr_write(CSR_SLIE, MIP_MOVFIP);
 	/* disable machine counter in M-mode */
-	csr_write(mcountermask_m, 0xfffffffd);
+	csr_write(CSR_MCOUNTERMASK_M, 0xfffffffd);
 	/* delegate S-mode local interrupt to S-mode */
-	csr_write(mslideleg, MIP_MOVFIP);
+	csr_write(CSR_MSLIDELEG, MIP_MOVFIP);
 
 	return 0;
 }
@@ -336,10 +336,10 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 	int ret = 0;
 	switch (funcid) {
 	case SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS:
-		*out_value = csr_read(CSR_MCACHECTL);
+		*out_value = csr_read(CSR_MCACHE_CTL);
 		break;
 	case SBI_EXT_ANDES_GET_MMISC_CTL_STATUS:
-		*out_value = csr_read(CSR_MMISCCTL);
+		*out_value = csr_read(CSR_MMISC_CTL);
 		break;
 	case SBI_EXT_ANDES_SET_MCACHE_CTL:
 		ret = mcall_set_mcache_ctl(args[0]);
@@ -372,10 +372,10 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		ret = mcall_set_pfm();
 		break;
 	case SBI_EXT_ANDES_READ_POWERBRAKE:
-		*out_value = csr_read(CSR_MPFTCTL);
+		*out_value = csr_read(CSR_MPFT_CTL);
 		break;
 	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
-		csr_write(CSR_MPFTCTL, args[0]);
+		csr_write(CSR_MPFT_CTL, args[0]);
 		break;
 	case SBI_EXT_ANDES_SUSPEND_PREPARE:
 		ret = mcall_suspend_prepare(args[0], args[1]);
@@ -399,7 +399,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		mcall_free_pma(args[0]);
 		break;
 	case SBI_EXT_ANDES_PROBE_PMA:
-		*out_value = ((csr_read(CSR_MMSCCFG) & 0x40000000) != 0);
+		*out_value = ((csr_read(CSR_MMSC_CFG) & 0x40000000) != 0);
 		break;
 	case SBI_EXT_ANDES_DCACHE_WBINVAL_ALL:
 		ret = mcall_dcache_wbinval_all();
