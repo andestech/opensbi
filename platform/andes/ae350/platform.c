@@ -31,29 +31,39 @@ static struct plic_data plic = {
 int has_l2;
 extern int ae350_suspend_mode;
 
-/* Platform early initialization. */
-static int ae350_early_init(bool cold_boot)
+static bool is_andestar45_series(void)
 {
-	/* Machine counter write enable */
-	csr_write(mcounterwen, 0xfffffffd);
-	/* Supervisor local interrupt enable */
-    csr_write(slie, MIP_MOVFIP);
-	/* disable machine counter in M-mode */
-    csr_write(mcountermask_m, 0xfffffffd);
-	/* delegate S-mode local interrupt to S-mode */
-    csr_write(mslideleg, MIP_MOVFIP);
+	uintptr_t marchid = csr_read(CSR_MARCHID);
 
-	return 0;
+	return ((marchid & 0xF0) >> 4 == 4 &&
+			(marchid & 0xF) == 5) ? true : false;
 }
 
-/* Platform final initialization. */
-static int ae350_final_init(bool cold_boot)
+static int ae350_pre_init(bool cold_boot)
 {
-	void *fdt;
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 
 	/* enable L1 cache */
 	uintptr_t mcache_ctl_val = csr_read(CSR_MCACHECTL);
+	uintptr_t mmisc_ctl_val = csr_read(CSR_MMISCCTL);
+
+	if (is_andestar45_series()) {
+		if (!(mcache_ctl_val & V5_MCACHE_CTL_DC_COHEN_EN))
+			mcache_ctl_val |= V5_MCACHE_CTL_DC_COHEN_EN;
+
+		csr_write(CSR_MCACHECTL, mcache_ctl_val);
+
+		/*
+		 * Check DC_COHEN_EN, if cannot write to mcache_ctl,
+		 * we assume this bitmap not support L2 CM
+		 */
+		mcache_ctl_val = csr_read(CSR_MCACHECTL);
+		if ((mcache_ctl_val & V5_MCACHE_CTL_DC_COHEN_EN)) {
+			/* Wait for DC_COHSTA bit be set */
+			while (!(mcache_ctl_val & V5_MCACHE_CTL_DC_COHSTA_EN))
+				mcache_ctl_val = csr_read(CSR_MCACHECTL);
+		}
+	}
 
 	if (!(mcache_ctl_val & V5_MCACHE_CTL_IC_EN))
 		mcache_ctl_val |= V5_MCACHE_CTL_IC_EN;
@@ -72,18 +82,48 @@ static int ae350_final_init(bool cold_boot)
 
 	csr_write(CSR_MCACHECTL, mcache_ctl_val);
 
+	/* enable non-blocking load */
+	if (!(mmisc_ctl_val & V5_MMISC_CTL_NON_BLOCKING_EN))
+		mmisc_ctl_val |= V5_MMISC_CTL_NON_BLOCKING_EN;
+
+	csr_write(CSR_MMISCCTL, mmisc_ctl_val);
+
 	/* enable L2 cache */
 	uint32_t *l2c_ctl_base = (void *)AE350_L2C_ADDR + V5_L2C_CTL_OFFSET;
 	uint32_t l2c_ctl_val = *l2c_ctl_base;
 
-	// l2c_ctl_val=0xffffffff  ==> no_l2
+	/* l2c_ctl_val=0xffffffff  ==> no_l2 */
 	has_l2 = (l2c_ctl_val==((uint32_t)~0U)) ? 0 : 1;
-	if(has_l2){
+	if (has_l2) {
 		if (!(l2c_ctl_val & V5_L2C_CTL_ENABLE_MASK))
-			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK;
+			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK |
+						V5_L2C_CTL_IPFDPT_MASK |
+						V5_L2C_CTL_DPFDPT_MASK;
 		*l2c_ctl_base = l2c_ctl_val;
 	}
 
+	return 0;
+}
+
+/* Platform early initialization. */
+static int ae350_early_init(bool cold_boot)
+{
+	/* Machine counter write enable */
+	csr_write(mcounterwen, 0xfffffffd);
+	/* Supervisor local interrupt enable */
+	csr_write(slie, MIP_MOVFIP);
+	/* disable machine counter in M-mode */
+	csr_write(mcountermask_m, 0xfffffffd);
+	/* delegate S-mode local interrupt to S-mode */
+	csr_write(mslideleg, MIP_MOVFIP);
+
+	return 0;
+}
+
+/* Platform final initialization. */
+static int ae350_final_init(bool cold_boot)
+{
+	void *fdt;
 
 	if (!cold_boot)
 		return 0;
@@ -176,10 +216,10 @@ static void mcall_set_reset_vec(int cpu_nums)
 static int ae350_console_init(void)
 {
 	return uart8250_init(AE350_UART_ADDR,
-			     AE350_UART_FREQUENCY,
-			     AE350_UART_BAUDRATE,
-			     AE350_UART_REG_SHIFT,
-			     AE350_UART_REG_WIDTH);
+				 AE350_UART_FREQUENCY,
+				 AE350_UART_BAUDRATE,
+				 AE350_UART_REG_SHIFT,
+				 AE350_UART_REG_WIDTH);
 }
 
 /* Initialize the platform interrupt controller for current HART. */
@@ -373,6 +413,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 
 /* Platform descriptor. */
 const struct sbi_platform_operations platform_ops = {
+	.pre_init   = ae350_pre_init,
 	.early_init = ae350_early_init,
 	.final_init = ae350_final_init,
 
