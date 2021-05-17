@@ -99,6 +99,18 @@ static int ae350_pre_init(bool cold_boot)
 			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK |
 						V5_L2C_CTL_IPFDPT_MASK |
 						V5_L2C_CTL_DPFDPT_MASK;
+
+		/* ram cycle settings */
+		/* 
+		 * **Do NOT** change RAM cycle settings for Andes' EVB, but once you
+		 * you have done the integration, please uncomment the following and
+		 * do the proper setting for your platform.
+		 */
+		// l2c_ctl_val |= scan->tag_ram_ctl[0] << V5_L2C_CTL_TRAMOCTL_OFFSET;
+		// l2c_ctl_val |= scan->tag_ram_ctl[1] << V5_L2C_CTL_TRAMICTL_OFFSET;
+		// l2c_ctl_val |= scan->data_ram_ctl[0] << V5_L2C_CTL_DRAMOCTL_OFFSET;
+		// l2c_ctl_val |= scan->data_ram_ctl[1] << V5_L2C_CTL_DRAMICTL_OFFSET;
+
 		*l2c_ctl_base = l2c_ctl_val;
 	}
 
