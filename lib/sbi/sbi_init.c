@@ -162,13 +162,13 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 	if (rc)
 		sbi_hart_hang();
 
+	rc = sbi_platform_pre_init(plat, TRUE);
+	if (rc)
+		sbi_hart_hang();
+
 	init_count_offset = sbi_scratch_alloc_offset(__SIZEOF_POINTER__,
 						     "INIT_COUNT");
 	if (!init_count_offset)
-		sbi_hart_hang();
-
-	rc = sbi_platform_pre_init(plat, TRUE);
-	if (rc)
 		sbi_hart_hang();
 
 	rc = sbi_hsm_init(scratch, hartid, TRUE);
@@ -230,13 +230,13 @@ static void __noreturn init_warmboot(struct sbi_scratch *scratch, u32 hartid)
 	unsigned long *init_count;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
 
+	rc = sbi_platform_pre_init(plat, FALSE);
+	if (rc)
+		sbi_hart_hang();
+
 	wait_for_coldboot(scratch, hartid);
 
 	if (!init_count_offset)
-		sbi_hart_hang();
-
-	rc = sbi_platform_pre_init(plat, FALSE);
-	if (rc)
 		sbi_hart_hang();
 
 	rc = sbi_hsm_init(scratch, hartid, FALSE);
