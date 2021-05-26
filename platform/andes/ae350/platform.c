@@ -289,7 +289,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		mcall_set_reset_vec(args[0]);
 		break;
 	case SBI_EXT_ANDES_SET_PMA:
-		mcall_set_pma(args[0], args[1], args[2]);
+		mcall_set_pma(args[0], args[1], args[2], args[3]);
 		break;
 	case SBI_EXT_ANDES_FREE_PMA:
 		mcall_free_pma(args[0]);

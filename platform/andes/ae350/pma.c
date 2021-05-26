@@ -23,9 +23,9 @@ void init_pma(void){
   }
 }
 
-void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size)
+void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size, unsigned long entry_id)
 {
-	int i, power = 0;
+	int power = 0;
 	unsigned long size_tmp, shift = 0, pmacfg_val;
 	char *pmaxcfg;
 	unsigned long mmsc = csr_read(CSR_MMSC_CFG);
@@ -47,32 +47,30 @@ void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size)
 			shift = (shift << 1) | 0x1;
 	}
 
-	for (i = 0; i < PMA_NUM; i++) {
-		if (!pma_used_table[i]) {
-			pma_used_table[i] = va;
-			pa = pa >> 2;
-			pa = pa | shift;
-			pa = pa & ~(0x1 << (power - 3));
+	if (entry_id < PMA_NUM) {
+		pma_used_table[entry_id] = va;
+		pa = pa >> 2;
+		pa = pa | shift;
+		pa = pa & ~(0x1 << (power - 3));
 #if __riscv_xlen == 64
-			pmacfg_val = read_pmacfg(i / 8);
-			pmaxcfg = (char *)&pmacfg_val;
-			pmaxcfg = pmaxcfg + (i % 8);
-			*pmaxcfg = 0;
-			*pmaxcfg = *pmaxcfg | PMA_NAPOT;
-			*pmaxcfg = *pmaxcfg | PMA_NOCACHE_BUFFER;
-			write_pmacfg(i / 8, pmacfg_val);
+		pmacfg_val = read_pmacfg(entry_id / 8);
+		pmaxcfg = (char *)&pmacfg_val;
+		pmaxcfg = pmaxcfg + (entry_id % 8);
+		*pmaxcfg = 0;
+		*pmaxcfg = *pmaxcfg | PMA_NAPOT;
+		*pmaxcfg = *pmaxcfg | PMA_NOCACHE_BUFFER;
+		write_pmacfg(entry_id / 8, pmacfg_val);
 #else
-      pmacfg_val = read_pmacfg(i / 4);
-      pmaxcfg = (char *)&pmacfg_val;
-      pmaxcfg = pmaxcfg + (i % 4);
-      *pmaxcfg = 0;
-      *pmaxcfg = *pmaxcfg | PMA_NAPOT;
-      *pmaxcfg = *pmaxcfg | PMA_NOCACHE_BUFFER;
-      write_pmacfg(i / 4, pmacfg_val);
+		pmacfg_val = read_pmacfg(entry_id / 4);
+		pmaxcfg = (char *)&pmacfg_val;
+		pmaxcfg = pmaxcfg + (entry_id % 4);
+		*pmaxcfg = 0;
+		*pmaxcfg = *pmaxcfg | PMA_NAPOT;
+		*pmaxcfg = *pmaxcfg | PMA_NOCACHE_BUFFER;
+		write_pmacfg(entry_id / 4, pmacfg_val);
 #endif
-			write_pmaaddr(i, pa);
-			return;
-		}
+		write_pmaaddr(entry_id, pa);
+		return;
 	}
 	/* There is no available pma register */
 	__asm__("ebreak");
@@ -80,19 +78,16 @@ void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size)
 
 }
 
-void mcall_free_pma(unsigned long va)
+void mcall_free_pma(unsigned long entry_id)
 {
-	int i;
-	for (i = 0 ; i < PMA_NUM; i++) {
-		if (pma_used_table[i] == va) {
-			pma_used_table[i] = 0;
+	if (entry_id < PMA_NUM) {
+		pma_used_table[entry_id] = 0;
 #if __riscv_xlen == 64
-			write_pmacfg(i / 8, 0);
+		write_pmacfg(entry_id / 8, 0);
 #else
-			write_pmacfg(i / 4, 0);
+		write_pmacfg(entry_id / 4, 0);
 #endif
-			return;
-		}
+		return;
 	}
 
 }
