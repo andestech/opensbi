@@ -81,7 +81,7 @@ void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size, unsign
 void mcall_free_pma(unsigned long entry_id)
 {
 	if (entry_id < PMA_NUM) {
-		pma_used_table[i] = 0;
+		pma_used_table[entry_id] = 0;
 #if __riscv_xlen == 64
 		write_pmacfg(entry_id / 8, 0);
 #else
