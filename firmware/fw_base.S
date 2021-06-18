@@ -46,6 +46,9 @@
 	.globl _start
 	.globl _start_warm
 _start:
+	/* turn on I/D cache and CM in the begginning (for 45 series bitmap) */
+	li t0, 0x80003
+	csrw  mcache_ctl, t0
 	/* Find preferred boot HART id */
 	MOV_3R	s0, a0, s1, a1, s2, a2
 	call	fw_boot_hart
