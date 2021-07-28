@@ -82,7 +82,7 @@
 #define TRIGGER_SUPPORT(n)	(n < total_triggers)
 #define TRIGGER_SUPPORT_TYPE(type) ({		\
   uintptr_t __tmp;				\
-  uintptr_t __tinfo = csr_read(tinfo);		\
+  uintptr_t __tinfo = csr_read(CSR_TINFO);		\
   __tmp = (__tinfo & (1 << type));		\
   __tmp; })					\
 

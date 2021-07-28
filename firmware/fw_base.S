@@ -12,6 +12,7 @@
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_trap.h>
+#include <../platform/andes/ae350/platform.h>
 
 #define BOOT_STATUS_RELOCATE_DONE	1
 #define BOOT_STATUS_BOOT_HART_DONE	2
@@ -48,7 +49,7 @@
 _start:
 	/* turn on I/D cache and CM in the begginning (for 45 series bitmap) */
 	li t0, 0x80003
-	csrw  mcache_ctl, t0
+	csrw  CSR_MCACHE_CTL, t0
 	/* Find preferred boot HART id */
 	MOV_3R	s0, a0, s1, a1, s2, a2
 	call	fw_boot_hart
