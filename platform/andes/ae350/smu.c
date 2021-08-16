@@ -10,8 +10,9 @@
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_io.h>
 #include "smu.h"
+#include "platform.h"
 
-int ae350_suspend_mode=0;
+int ae350_suspend_mode[AE350_HART_COUNT] = {0};
 void smu_suspend_prepare(char main_core, char enable){
 	if (main_core) {
 		if (enable) {

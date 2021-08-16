@@ -131,6 +131,8 @@
  */
 
 #ifndef __ASSEMBLER__
+extern int ae350_suspend_mode[];
+
 enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS = 0,
 	SBI_EXT_ANDES_GET_MMISC_CTL_STATUS,

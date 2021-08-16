@@ -50,7 +50,6 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_MIE)
 	PUSH_CSR(CSR_MTVEC)
 	PUSH_CSR(CSR_MSCRATCH)
-	PUSH_CSR(CSR_MEPC)
 	PUSH_CSR(CSR_MCAUSE)
 	PUSH_CSR(CSR_MTVAL)
 	PUSH_CSR(CSR_MIP)
@@ -58,29 +57,12 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_MCOUNTINHIBIT)
 
 	# Push Andes m-mode reg
-	#PUSH_CSR(milmb)
-	#PUSH_CSR(mdlmb)
-	#PUSH_CSR(mecc_code)
-	#PUSH_CSR(mnvec)
-	PUSH_CSR(CSR_MCACHE_CTL)
-	PUSH_CSR(CSR_MCCTLBEGINADDR)
-	PUSH_CSR(CSR_MCCTLCOMMAND)
-	PUSH_CSR(CSR_MCCTLDATA)
-	#PUSH_CSR(mppib)
-	#PUSH_CSR(mfiob)
 	PUSH_CSR(CSR_MHSP_CTL)
 	PUSH_CSR(CSR_MSP_BOUND)
 	PUSH_CSR(CSR_MSP_BASE)
 	PUSH_CSR(CSR_MXSTATUS)
 	PUSH_CSR(CSR_MDCAUSE)
 	PUSH_CSR(CSR_MSLIDELEG)
-	#PUSH_CSR(msavestatus)
-	#PUSH_CSR(msaveepc1)
-	#PUSH_CSR(msavecause1)
-	#PUSH_CSR(msaveepc2)
-	#PUSH_CSR(msavecause2)
-	#PUSH_CSR(msavedcause1)
-	#PUSH_CSR(msavedcause2)
 	PUSH_CSR(CSR_MPFT_CTL)
 	PUSH_CSR(CSR_MMISC_CTL)
 	PUSH_CSR(CSR_MCOUNTERWEN)
@@ -89,36 +71,6 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_MCOUNTERMASK_S)
 	PUSH_CSR(CSR_MCOUNTERMASK_U)
 	PUSH_CSR(CSR_MCOUNTEROVF)
-	#PUSH_CSR(mirq_entry)
-	#PUSH_CSR(mintsel_jal)
-	#PUSH_CSR(pushmcause)
-	#PUSH_CSR(pushmepc)
-	#PUSH_CSR(pushmxstatus)
-##if __riscv_xlen == 64
-#	PUSH_CSR(pmacfg0)
-#	PUSH_CSR(pmacfg2)
-##else
-#	PUSH_CSR(pmacfg0)
-#	PUSH_CSR(pmacfg1)
-#	PUSH_CSR(pmacfg2)
-#	PUSH_CSR(pmacfg3)
-##endif
-#	PUSH_CSR(pmaaddr0)
-#	PUSH_CSR(pmaaddr1)
-#	PUSH_CSR(pmaaddr2)
-#	PUSH_CSR(pmaaddr3)
-#	PUSH_CSR(pmaaddr4)
-#	PUSH_CSR(pmaaddr5)
-#	PUSH_CSR(pmaaddr6)
-#	PUSH_CSR(pmaaddr7)
-#	PUSH_CSR(pmaaddr8)
-#	PUSH_CSR(pmaaddr9)
-#	PUSH_CSR(pmaaddr10)
-#	PUSH_CSR(pmaaddr11)
-#	PUSH_CSR(pmaaddr12)
-#	PUSH_CSR(pmaaddr13)
-#	PUSH_CSR(pmaaddr14)
-#	PUSH_CSR(pmaaddr15)
 
 	# Push RISC-V s-mode reg
 	PUSH_CSR(CSR_SSTATUS)
@@ -144,8 +96,6 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_SCOUNTERMASK_U)
 	PUSH_CSR(CSR_SCOUNTEROVF)
 	PUSH_CSR(CSR_SCOUNTINHIBIT)
-	PUSH_CSR(CSR_SCCTLDATA)
-	#PUSH_CSR(smisc_ctl)
 
 	# Push pmp
 #if __riscv_xlen == 64
@@ -174,6 +124,7 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_PMPADDR14)
 	PUSH_CSR(CSR_PMPADDR15)
 
+store_sp:
 	# store sp to pcs scratch for each core
 	li	t0, 0x20
 	li	t1, 3
@@ -195,21 +146,52 @@ cpu_suspend2ram:
 	la	t1, cpu_resume
 	sw	t1, 0(t0)
 
+	# need to get ae350_suspend_mode[n] to $a4 before CM is disabled
+	# $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
+	csrr  t1, CSR_MHARTID
+	srli  t1, t1, 0x2
+	la	  t0, ae350_suspend_mode
+	add	  t0, t0, t1
+	lw	  a4, 0(t0)
+
+disable_I_D_cache:
 	# flush dcache
 	csrw	CSR_UCCTLCOMMAND, 0x6
 
 	# disable d-cache
 	csrrc	t0, CSR_MCACHE_CTL, 0x2
+	csrrc	t0, CSR_MCACHE_CTL, 0x1
 
+    # disable CM (DC_COHEN)
+disable_CM:
+    csrr  t1, CSR_MCACHE_CTL
+    lui   t2,0xfff80
+    addi  t2, t2, -1
+    and   t1, t1, t2
+    csrw  CSR_MCACHE_CTL, t1
+
+wait_for_DC_COHSTA_disable:
+    csrr   t1, CSR_MCACHE_CTL
+    srli   t1, t1, 12
+    li     a5, 0x100
+    and    t1, t1, a5
+    bnez   t1, wait_for_DC_COHSTA_disable
+
+suspend_mode_check1:
+    # ae350_suspend_mode[n] == CpuHotplugDeepSleepMode --> skip disable_L2()
+	li t1, 0x3
+	beq a4, t1, goto_sleep
+
+disable_L2:
 	# check if l2 exist
-	li	t0, 0xe0500000
+	la	t0, has_l2
 	lw	t1, 0(t0)
-	li	t0, -1
-	bne	t0, t1, no_l2
+	li	t0, 1
+	bne	t0, t1, goto_sleep
 
 	# check if it is core 0
 	csrr	t1, CSR_MHARTID
-	bnez	t1, no_l2
+	bnez	t1, goto_sleep
 
 	# flush and disable l2 by core 0
 	li	t0, 0xe0500000
@@ -233,7 +215,8 @@ poll_l2_idle:
 	srli	t1, t1, 1
 	slli	t1, t1, 1
 	sw	t1, 0(t0)
-no_l2:
+
+goto_sleep:
 	wfi
 
 test_sec:
@@ -247,7 +230,61 @@ cpu_resume:
 	beqz	t0, go_resume
 cpu_hang:
 	j	cpu_hang
+
 go_resume:
+enable_CM:
+	#enable CM (DC_COHEN)
+    csrr  t1, CSR_MCACHE_CTL
+    lui   t2,0x80
+    or    t1, t1, t2
+    csrw  CSR_MCACHE_CTL, t1
+
+	# check DC_COHEN is enabled (25-series do not has CM)
+	csrr  t1, CSR_MCACHE_CTL
+	lui   t2,0x80
+	bne   t1, t2, enable_I_D_cache
+
+wait_for_DC_COHSTA_is_enabled:
+    csrr  t1, CSR_MCACHE_CTL
+    srli  t1, t1, 12
+    li    a5, 0x100
+    and   t1, t1, a5
+    beqz  t1, wait_for_DC_COHSTA_is_enabled
+
+enable_I_D_cache:
+	# enable d-cache & i-cache
+	csrrs	t0, CSR_MCACHE_CTL, 0x1
+	csrrs	t0, CSR_MCACHE_CTL, 0x2
+
+suspend_mode_check2:
+	# load ae350_suspend_mode[n] to $a4
+	# $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
+	csrr  t1, CSR_MHARTID
+	srli  t1, t1, 0x2
+	la	  t0, ae350_suspend_mode
+	add	  t0, t0, t1
+	lw	  a4, 0(t0)
+
+	# check ae350_suspend_mode[n] == CpuHotplugDeepSleepMode
+	li t1, 0x3
+	beq a4, t1, restore_sp
+
+enable_L2:
+	la	t0, has_l2
+	lw	t1, 0(t0)
+	li	t0, 1
+	bne	t0, t1, restore_sp
+
+	csrr    t0, CSR_MHARTID
+	bnez	t0, restore_sp
+
+	# enable L2
+	li	t0, 0xe0500008
+	lw	t1, 0(t0)
+	ori	t1, t1, 0x1
+	sw	t1, 0(t0)
+
+restore_sp:
 	# load sp
 	li	t0, 0x20
 	li	t1, 3
@@ -286,9 +323,8 @@ go_resume:
 	POP_CSR(CSR_PMPCFG1)
 	POP_CSR(CSR_PMPCFG0)
 #endif
+
 	# Pop Andes s-mode reg
-	#POP_CSR(smisc_ctl)
-	POP_CSR(CSR_SCCTLDATA)
 	POP_CSR(CSR_SCOUNTINHIBIT)
 	POP_CSR(CSR_SCOUNTEROVF)
 	POP_CSR(CSR_SCOUNTERMASK_U)
@@ -314,36 +350,6 @@ go_resume:
 	POP_CSR(CSR_SSTATUS)
 
 	# Pop Andes m-mode reg
-#	POP_CSR(pmaaddr15)
-#	POP_CSR(pmaaddr14)
-#	POP_CSR(pmaaddr13)
-#	POP_CSR(pmaaddr12)
-#	POP_CSR(pmaaddr11)
-#	POP_CSR(pmaaddr10)
-#	POP_CSR(pmaaddr9)
-#	POP_CSR(pmaaddr8)
-#	POP_CSR(pmaaddr7)
-#	POP_CSR(pmaaddr6)
-#	POP_CSR(pmaaddr5)
-#	POP_CSR(pmaaddr4)
-#	POP_CSR(pmaaddr3)
-#	POP_CSR(pmaaddr2)
-#	POP_CSR(pmaaddr1)
-#	POP_CSR(pmaaddr0)
-##if __riscv_xlen == 64
-#	POP_CSR(pmacfg2)
-#	POP_CSR(pmacfg0)
-##else
-#	POP_CSR(pmacfg3)
-#	POP_CSR(pmacfg2)
-#	POP_CSR(pmacfg1)
-#	POP_CSR(pmacfg0)
-##endif
-	#POP_CSR(pushmxstatus)
-	#POP_CSR(pushmepc)
-	#POP_CSR(pushmcause)
-	#POP_CSR(mintsel_jal)
-	#POP_CSR(mirq_entry)
 	POP_CSR(CSR_MCOUNTEROVF)
 	POP_CSR(CSR_MCOUNTERMASK_U)
 	POP_CSR(CSR_MCOUNTERMASK_S)
@@ -352,36 +358,18 @@ go_resume:
 	POP_CSR(CSR_MCOUNTERWEN)
 	POP_CSR(CSR_MMISC_CTL)
 	POP_CSR(CSR_MPFT_CTL)
-	#POP_CSR(msavedcause2)
-	#POP_CSR(msavedcause1)
-	#POP_CSR(msavecause2)
-	#POP_CSR(msaveepc2)
-	#POP_CSR(msavecause1)
-	#POP_CSR(msaveepc1)
-	#POP_CSR(msavestatus)
 	POP_CSR(CSR_MSLIDELEG)
 	POP_CSR(CSR_MDCAUSE)
 	POP_CSR(CSR_MXSTATUS)
 	POP_CSR(CSR_MSP_BASE)
 	POP_CSR(CSR_MSP_BOUND)
 	POP_CSR(CSR_MHSP_CTL)
-	#POP_CSR(mfiob)
-	#POP_CSR(mppib)
-	POP_CSR(CSR_MCCTLDATA)
-	POP_CSR(CSR_MCCTLCOMMAND)
-	POP_CSR(CSR_MCCTLBEGINADDR)
-	POP_CSR(CSR_MCACHE_CTL)
-	#POP_CSR(mnvec)
-	#POP_CSR(mecc_code)
-	#POP_CSR(mdlmb)
-	#POP_CSR(milmb)
 
 	# Pop RISC-V m-mode reg
 	POP_CSR(CSR_MCOUNTINHIBIT)
 	POP_CSR(CSR_MCOUNTEREN)
 	POP_CSR(CSR_MIP)
 	POP_CSR(CSR_MTVAL)
-	POP_CSR(mcause)
 	POP_CSR(CSR_MCAUSE)
 	POP_CSR(CSR_MSCRATCH)
 	POP_CSR(CSR_MTVEC)
@@ -423,21 +411,5 @@ go_resume:
 	POP(x3)
 	POP(x2)
 	POP(x1)
-	li	t0, 0xe0500000
-	lw	t1, 0(t0)
-	li	t0, -1
-	beq	t0, t1, no_enable_l2
 
-	csrr    t0, CSR_MHARTID
-	bnez	t0, no_enable_l2
-
-	# enable L2
-	li	t0, 0xe0500008
-	lw	t1, 0(t0)
-	ori	t1, t1, 0x1
-	sw	t1, 0(t0)
-
-no_enable_l2:
-	# enable d-cache
-	csrrs	t0, CSR_MCACHE_CTL, 0x2
 	ret
