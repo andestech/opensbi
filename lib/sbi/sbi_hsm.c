@@ -24,6 +24,8 @@
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_console.h>
+#include "../platform/andes/ae350/smu.h"
+#include "../platform/andes/ae350/platform.h"
 
 static unsigned long hart_data_offset;
 
@@ -116,7 +118,6 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 }
 
-extern int ae350_suspend_mode;
 extern int ae350_enter_suspend_mode(int suspend_mode);
 static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 {
@@ -126,24 +127,24 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 							    hart_data_offset);
 
 
-	if(ae350_suspend_mode != 0){
-		ae350_enter_suspend_mode(ae350_suspend_mode);
-		ae350_suspend_mode = 0;
-	}else{
-		/* Save MIE CSR */
-		saved_mie = csr_read(CSR_MIE);
-
-		/* Set MSIE bit to receive IPI */
-		csr_set(CSR_MIE, MIP_MSIP);
-
-		/* Wait for hart_add call*/
-		while (atomic_read(&hdata->state) != SBI_HART_STARTING) {
-			wfi();
-		};
-
-		/* Restore MIE CSR */
-		csr_write(CSR_MIE, saved_mie);
+	if (ae350_suspend_mode[hartid] != 0) {
+		ae350_enter_suspend_mode(ae350_suspend_mode[hartid]);
+		ae350_suspend_mode[hartid] = 0;
 	}
+
+	/* Save MIE CSR */
+	saved_mie = csr_read(CSR_MIE);
+
+	/* Set MSIE bit to receive IPI */
+	csr_set(CSR_MIE, MIP_MSIP);
+
+	/* Wait for hart_add call*/
+	while (atomic_read(&hdata->state) != SBI_HART_STARTING) {
+		wfi();
+	};
+
+	/* Restore MIE CSR */
+	csr_write(CSR_MIE, saved_mie);
 
 	/* Clear current HART IPI */
 	sbi_platform_ipi_clear(plat, hartid);
@@ -220,6 +221,19 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch, u32 hartid,
 	struct sbi_scratch *rscratch;
 	struct sbi_hsm_data *hdata;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
+
+	if (ae350_suspend_mode[hartid] == CpuHotplugDeepSleepMode) {
+		volatile uint32_t *PCSn_PCS_CTL =
+			(void *)((unsigned long)SMU_BASE + CN_PCS_CTL_OFF(hartid));
+		volatile uint32_t *PCSn_PCS_STATUS =
+			(void *)((unsigned long)SMU_BASE + CN_PCS_STATUS_OFF(hartid));
+
+		// wakeup core n
+		*PCSn_PCS_CTL = 0x8;
+
+		// wait for wakeup procees is done
+		while ( (*PCSn_PCS_STATUS & 0x7) != 0);
+	}
 
 	rscratch = sbi_hartid_to_scratch(hartid);
 	if (!rscratch)

@@ -29,7 +29,6 @@ static struct plic_data plic = {
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
 int has_l2;
-extern int ae350_suspend_mode;
 
 static bool is_andestar45_series(void)
 {
@@ -297,13 +296,9 @@ static int ae350_system_reset(u32 type)
 		jump_warmboot() -> sbi_hsm_hart_wait() -> ae350_enter_suspend_mode() -> normal/light/deep */
 int ae350_set_suspend_mode(int suspend_mode)
 {
-	ae350_suspend_mode = suspend_mode;
+	u32 hartid = current_hartid();
 
-	if(suspend_mode == LightSleepMode){
-		sbi_printf("ae350_suspend_mode: Light Sleep Mode\n");
-	}else if(suspend_mode == DeepSleepMode){
-		sbi_printf("ae350_suspend_mode: Deep Sleep Mode\n");
-	}
+	ae350_suspend_mode[hartid] = suspend_mode;
 	return 0;
 }
 
@@ -311,7 +306,9 @@ int ae350_enter_suspend_mode(int suspend_mode){
 	u32 hartid = current_hartid();
 
 	// smu function
-	if(suspend_mode == LightSleepMode){
+	if (suspend_mode == LightSleepMode) {
+		sbi_printf("%s(): CPU[%d] LightSleepMode\n", __func__, hartid);
+
 		// set SMU wakeup enable & MISC control
 		smu_set_wakeup_enable(hartid, 1 << PCS_WAKE_MSIP_OFF);
 		// Disable higher privilege's non-wakeup event
@@ -326,7 +323,9 @@ int ae350_enter_suspend_mode(int suspend_mode){
 		mcall_dcache_op(1);
 		// enable privilege
 		smu_suspend_prepare(false, true);
-	}else if(suspend_mode == DeepSleepMode){
+	} else if (suspend_mode == DeepSleepMode) {
+		sbi_printf("%s(): CPU[%d] DeepSleepMode\n", __func__, hartid);
+
 		// set SMU wakeup enable & MISC control
 		smu_set_wakeup_enable(hartid, 1 << PCS_WAKE_MSIP_OFF);
 		// Disable higher privilege's non-wakeup event
@@ -337,6 +336,29 @@ int ae350_enter_suspend_mode(int suspend_mode){
 		cpu_suspend2ram();
 		// enable privilege
 		smu_suspend_prepare(false, true);
+	} else if (suspend_mode == CpuHotplugDeepSleepMode) {
+		/*
+		 * In 25-series, core 0 is binding with L2 power domain,
+		 * core 0 should NOT enter deep sleep mode.
+		 *
+		 * For 45-series, every core has its own power domain,
+		 * It's ok to sleep main core.
+		 */
+		if (is_andestar45_series() || !(hartid == 0)) {
+			sbi_printf("%s(): CPU[%d] Cpu Hotplug DeepSleepMode\n",
+				__func__, hartid);
+
+			// set SMU wakeup enable & MISC control
+			smu_set_wakeup_enable(hartid, 0);
+			// Disable higher privilege's non-wakeup event
+			smu_suspend_prepare(true, false);
+			// set SMU Deep sleep command
+			smu_set_sleep(hartid, DeepSleep_CTL);
+			// stop & wfi & resume
+			cpu_suspend2ram();
+			// enable privilege
+			smu_suspend_prepare(true, true);
+		}
 	}
 
 	return 0;
