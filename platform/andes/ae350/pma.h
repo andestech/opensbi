@@ -48,7 +48,7 @@ unsigned long read_pmacfg(int i);
 
 void write_pmacfg(int i, unsigned long val);
 
-void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size, unsigned long entry_id);
+void mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size, unsigned long entry_id);
 void mcall_free_pma(unsigned long va);
 
 void init_pma(void);

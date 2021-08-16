@@ -23,7 +23,7 @@ void init_pma(void){
   }
 }
 
-void mcall_set_pma(unsigned int pa, unsigned long va, unsigned long size, unsigned long entry_id)
+void mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size, unsigned long entry_id)
 {
 	int power = 0;
 	unsigned long size_tmp, shift = 0, pmacfg_val;
