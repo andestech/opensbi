@@ -63,9 +63,10 @@
 #define LightSleep_CTL          0
 #define DeepSleep_CTL           1
 
-#define NormalMode				0
+#define NormalMode              0
 #define LightSleepMode          1
-#define DeepSleepMode          	2
+#define DeepSleepMode           2
+#define CpuHotplugDeepSleepMode 3
 
 
 #ifndef __ASSEMBLY__
