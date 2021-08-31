@@ -107,7 +107,6 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 }
 
-extern int ae350_enter_suspend_mode(int suspend_mode);
 static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 {
 	unsigned long saved_mie;
@@ -117,7 +116,8 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 
 
 	if (ae350_suspend_mode[hartid] != 0) {
-		ae350_enter_suspend_mode(ae350_suspend_mode[hartid]);
+		ae350_enter_suspend_mode(ae350_suspend_mode[hartid],
+					false, 1 << PCS_WAKE_MSIP_OFF, 0);
 		ae350_suspend_mode[hartid] = 0;
 	}
 

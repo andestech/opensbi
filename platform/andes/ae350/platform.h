@@ -232,4 +232,10 @@ enum sbi_ext_andes_fid {
 #define V5_L2C_CTL_DRAMOCTL_MASK    (3UL << V5_L2C_CTL_DRAMOCTL_OFFSET)
 #define V5_L2C_CTL_DRAMICTL_MASK    (1UL << V5_L2C_CTL_DRAMICTL_OFFSET)
 
+#ifndef __ASSEMBLY__
+extern int ae350_suspend_mode[];
+int ae350_enter_suspend_mode(int suspend_mode, bool main_core,
+				unsigned int wake_mask, int num_cpus);
+#endif
+
 #endif /* _AE350_PLATFORM_H_ */

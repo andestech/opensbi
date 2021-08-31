@@ -293,7 +293,9 @@ int ae350_set_suspend_mode(int suspend_mode)
 	return 0;
 }
 
-int ae350_enter_suspend_mode(int suspend_mode){
+int ae350_enter_suspend_mode(int suspend_mode, int main_core,
+				unsigned int wake_mask, int num_cpus)
+{
 	u32 hartid = current_hartid();
 
 	// smu function
@@ -301,11 +303,14 @@ int ae350_enter_suspend_mode(int suspend_mode){
 		sbi_printf("%s(): CPU[%d] LightSleepMode\n", __func__, hartid);
 
 		// set SMU wakeup enable & MISC control
-		smu_set_wakeup_enable(hartid, 1 << PCS_WAKE_MSIP_OFF);
+		smu_set_wakeup_enable(hartid, main_core, wake_mask);
 		// Disable higher privilege's non-wakeup event
-		smu_suspend_prepare(false, false);
+		smu_suspend_prepare(main_core, false);
 		// set SMU light sleep command
 		smu_set_sleep(hartid, LightSleep_CTL);
+		// Wait for other cores to enter sleeping mode
+		if (main_core)
+			smu_check_pcs_status(LightSleep_STATUS, num_cpus);
 		// D-cache disable
 		mcall_dcache_op(0);
 		// wait for interrupt
@@ -313,20 +318,23 @@ int ae350_enter_suspend_mode(int suspend_mode){
 		// D-cache enable
 		mcall_dcache_op(1);
 		// enable privilege
-		smu_suspend_prepare(false, true);
+		smu_suspend_prepare(main_core, true);
 	} else if (suspend_mode == DeepSleepMode) {
 		sbi_printf("%s(): CPU[%d] DeepSleepMode\n", __func__, hartid);
 
 		// set SMU wakeup enable & MISC control
-		smu_set_wakeup_enable(hartid, 1 << PCS_WAKE_MSIP_OFF);
+		smu_set_wakeup_enable(hartid, main_core, wake_mask);
 		// Disable higher privilege's non-wakeup event
-		smu_suspend_prepare(false, false);
+		smu_suspend_prepare(main_core, false);
 		// set SMU Deep sleep command
 		smu_set_sleep(hartid, DeepSleep_CTL);
+		// Wait for other cores to enter sleeping mode
+		if (main_core)
+			smu_check_pcs_status(DeepSleep_STATUS, num_cpus);
 		// stop & wfi & resume
 		cpu_suspend2ram();
 		// enable privilege
-		smu_suspend_prepare(false, true);
+		smu_suspend_prepare(main_core, true);
 	} else if (suspend_mode == CpuHotplugDeepSleepMode) {
 		/*
 		 * In 25-series, core 0 is binding with L2 power domain,
@@ -340,15 +348,15 @@ int ae350_enter_suspend_mode(int suspend_mode){
 				__func__, hartid);
 
 			// set SMU wakeup enable & MISC control
-			smu_set_wakeup_enable(hartid, 0);
+			smu_set_wakeup_enable(hartid, main_core, 0);
 			// Disable higher privilege's non-wakeup event
-			smu_suspend_prepare(true, false);
+			smu_suspend_prepare(main_core, false);
 			// set SMU Deep sleep command
 			smu_set_sleep(hartid, DeepSleep_CTL);
 			// stop & wfi & resume
 			cpu_suspend2ram();
 			// enable privilege
-			smu_suspend_prepare(true, true);
+			smu_suspend_prepare(main_core, true);
 		}
 	}
 
@@ -412,6 +420,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_SET_SUSPEND_MODE:
 		ae350_set_suspend_mode(regs->a0);
+		break;
+	case SBI_EXT_ANDES_ENTER_SUSPEND_MODE:
+		ae350_enter_suspend_mode(args[0], args[1], args[2], args[3]);
 		break;
 	case SBI_EXT_ANDES_RESTART:
 		mcall_restart();
