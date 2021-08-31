@@ -131,7 +131,6 @@
  */
 
 #ifndef __ASSEMBLY__
-extern int ae350_suspend_mode[];
 enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS = 0,
 	SBI_EXT_ANDES_GET_MMISC_CTL_STATUS,
@@ -150,6 +149,7 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_SUSPEND_PREPARE,
 	SBI_EXT_ANDES_SUSPEND_MEM,
 	SBI_EXT_ANDES_SET_SUSPEND_MODE,
+	SBI_EXT_ANDES_ENTER_SUSPEND_MODE,
 	SBI_EXT_ANDES_RESTART,
 	SBI_EXT_ANDES_RESET_VEC,
 	SBI_EXT_ANDES_SET_PMA,
@@ -238,5 +238,11 @@ enum sbi_ext_andes_fid {
 #define V5_L2C_CTL_TRAMICTL_MASK    (1UL << V5_L2C_CTL_TRAMICTL_OFFSET)
 #define V5_L2C_CTL_DRAMOCTL_MASK    (3UL << V5_L2C_CTL_DRAMOCTL_OFFSET)
 #define V5_L2C_CTL_DRAMICTL_MASK    (1UL << V5_L2C_CTL_DRAMICTL_OFFSET)
+
+#ifndef __ASSEMBLY__
+extern int ae350_suspend_mode[];
+int ae350_enter_suspend_mode(int suspend_mode, bool main_core,
+				unsigned int wake_mask, int num_cpus);
+#endif
 
 #endif /* _AE350_PLATFORM_H_ */

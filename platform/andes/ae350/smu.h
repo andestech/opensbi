@@ -46,10 +46,25 @@
  * PCSN --> Power domain for Core (N-3)
  */
 
-#define PCSN_WE_OFF(n)          n * 0x20 + PCS0_WE_OFF
-#define CN_PCS_WE_OFF(n)        (n + 3) * 0x20 + PCS0_WE_OFF
-#define CN_PCS_STATUS_OFF(n)    (n + 3) * 0x20 + PCS0_STATUS_OFF
-#define CN_PCS_CTL_OFF(n)       (n + 3) * 0x20 + PCS0_CTL_OFF
+#define PCSN_WE_OFF(n)          ((n)     * 0x20 + PCS0_WE_OFF)
+#define CN_PCS_WE_OFF(n)        ((n + 3) * 0x20 + PCS0_WE_OFF)
+#define CN_PCS_STATUS_OFF(n)    ((n + 3) * 0x20 + PCS0_STATUS_OFF)
+#define CN_PCS_CTL_OFF(n)       ((n + 3) * 0x20 + PCS0_CTL_OFF)
+
+// PD* mask
+#define PD_TYPE_MASK        0x7
+#define PD_STATUS_MASK      0xf8
+#define GET_PD_TYPE(val)    (val & PD_TYPE_MASK)
+#define GET_PD_STATUS(val)  ((val & PD_STATUS_MASK) >> 3)
+
+// PCS_STATUS[0:2]: pd_type
+#define ACTIVE  0
+#define RESET   1
+#define SLEEP   2
+
+// PCS_STATUS[7:3]: pd_status for sleep mode
+#define LightSleep_STATUS       0
+#define DeepSleep_STATUS        16
 
 // wakeup events source offset
 #define PCS_WAKE_DBG_OFF	28
@@ -57,7 +72,7 @@
 
 // PCS_CTL
 #define PCS_CTL_PARAM_OFF       3
-#define SLEEP_CMD       3
+#define SLEEP_CMD               3
 
 // param of PCS_CTL for sleep cmd
 #define LightSleep_CTL          0
@@ -70,11 +85,12 @@
 
 
 #ifndef __ASSEMBLY__
-
 void smu_suspend_prepare(char main_core, char enable);
 void smu_set_sleep(int cpu, unsigned char sleep);
-void smu_set_wakeup_enable(int cpu, unsigned int events);
+void smu_set_wakeup_enable(int cpu, int main_core, unsigned int events);
+int get_pd_type(unsigned int cpu);
+int get_pd_status(unsigned int cpu);
+void smu_check_pcs_status(int sleep_mode_status, int num_cpus);
+#endif /* __ASSEMBLY__ */
 
-#endif
-
-#endif
+#endif /* _RISCV_SMU_H */
