@@ -37,17 +37,6 @@ uintptr_t mcall_icache_op(unsigned int enable)
 	return 0;
 }
 
-uintptr_t mcall_dcache_op(unsigned int enable)
-{
-	if (enable) {
-		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
-	} else {
-		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
-		csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
-	}
-	return 0;
-}
-
 uintptr_t mcall_dcache_wbinval_all(void)
 {
 	csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
