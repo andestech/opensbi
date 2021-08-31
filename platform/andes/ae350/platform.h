@@ -201,6 +201,7 @@ enum sbi_ext_andes_fid {
 /*nds cctl command*/
 #define V5_UCCTL_L1D_WBINVAL_ALL 6
 #define V5_UCCTL_L1D_WB_ALL 7
+#define V5_UCCTL_L1D_INVAL_ALL 23
 
 #define V5_MCACHE_CTL_IC_EN     (1UL << V5_MCACHE_CTL_IC_EN_OFFSET)
 #define V5_MCACHE_CTL_DC_EN     (1UL << V5_MCACHE_CTL_DC_EN_OFFSET)
@@ -243,6 +244,12 @@ enum sbi_ext_andes_fid {
 extern int ae350_suspend_mode[];
 int ae350_enter_suspend_mode(int suspend_mode, bool main_core,
 				unsigned int wake_mask, int num_cpus);
-#endif
+static inline __attribute__((always_inline)) bool is_andestar45_series(void)
+{
+	uintptr_t marchid = csr_read(CSR_MARCHID);
+	return ((marchid & 0xF0) >> 4 == 4 &&
+			(marchid & 0xF) == 5) ? true : false;
+}
+#endif /* __ASSEMBLY__ */
 
 #endif /* _AE350_PLATFORM_H_ */
