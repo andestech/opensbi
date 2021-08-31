@@ -30,14 +30,6 @@ static struct plic_data plic = {
 };
 int has_l2;
 
-static bool is_andestar45_series(void)
-{
-	uintptr_t marchid = csr_read(CSR_MARCHID);
-
-	return ((marchid & 0xF0) >> 4 == 4 &&
-			(marchid & 0xF) == 5) ? true : false;
-}
-
 static int ae350_pre_init(bool cold_boot)
 {
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
