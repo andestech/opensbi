@@ -74,8 +74,6 @@ cpu_suspend2ram:
 
 	# Push RISC-V s-mode reg
 	PUSH_CSR(CSR_SSTATUS)
-	#PUSH_CSR(sedeleg)
-	#PUSH_CSR(sideleg)
 	PUSH_CSR(CSR_SIE)
 	PUSH_CSR(CSR_STVEC)
 	PUSH_CSR(CSR_SCOUNTEREN)
@@ -146,6 +144,16 @@ store_sp:
 	la	t1, cpu_resume
 	sw	t1, 0(t0)
 
+	#reset MIE
+	csrw CSR_MIE, 0
+	csrw CSR_MSTATUS, 0
+	csrw CSR_MIP, 0
+
+	# reset SIE
+	csrw CSR_SIE, 0
+	csrw CSR_SSTATUS, 0
+	csrw CSR_SIP, 0
+
 	# need to get ae350_suspend_mode[n] to $a4 before CM is disabled
 	# $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
 	csrr  t1, CSR_MHARTID
@@ -158,14 +166,14 @@ disable_I_D_cache:
 	# flush dcache
 	csrw	CSR_UCCTLCOMMAND, 0x6
 
-	# disable d-cache
+	# disable d-cache & i-cache
 	csrrc	t0, CSR_MCACHE_CTL, 0x2
 	csrrc	t0, CSR_MCACHE_CTL, 0x1
 
     # disable CM (DC_COHEN)
 disable_CM:
     csrr  t1, CSR_MCACHE_CTL
-    lui   t2,0xfff80
+    lui   t2, 0xfff80
     addi  t2, t2, -1
     and   t1, t1, t2
     csrw  CSR_MCACHE_CTL, t1
@@ -178,7 +186,11 @@ wait_for_DC_COHSTA_disable:
     bnez   t1, wait_for_DC_COHSTA_disable
 
 suspend_mode_check1:
-    # ae350_suspend_mode[n] == CpuHotplugDeepSleepMode --> skip disable_L2()
+	# ae350_suspend_mode[n] == DeepSleepMode --> goto disable_L2()
+	li t1, 0x2
+	beq a4, t1, disable_L2
+
+	# ae350_suspend_mode[n] == CpuHotplugDeepSleepMode --> skip disable_L2()
 	li t1, 0x3
 	beq a4, t1, goto_sleep
 
@@ -235,13 +247,13 @@ go_resume:
 enable_CM:
 	#enable CM (DC_COHEN)
     csrr  t1, CSR_MCACHE_CTL
-    lui   t2,0x80
+    lui   t2, 0x80
     or    t1, t1, t2
     csrw  CSR_MCACHE_CTL, t1
 
 	# check DC_COHEN is enabled (25-series do not has CM)
 	csrr  t1, CSR_MCACHE_CTL
-	lui   t2,0x80
+	lui   t2, 0x80
 	bne   t1, t2, enable_I_D_cache
 
 wait_for_DC_COHSTA_is_enabled:
@@ -264,6 +276,10 @@ suspend_mode_check2:
 	la	  t0, ae350_suspend_mode
 	add	  t0, t0, t1
 	lw	  a4, 0(t0)
+
+	# check ae350_suspend_mode[n] == DeepSleepMode
+	li t1, 0x2
+	beq a4, t1, enable_L2
 
 	# check ae350_suspend_mode[n] == CpuHotplugDeepSleepMode
 	li t1, 0x3
@@ -336,7 +352,10 @@ restore_sp:
 	POP_CSR(CSR_SLIE)
 
 	# Pop RISC-V s-mode reg
+	sfence.vma
 	POP_CSR(CSR_SATP)
+	sfence.vma
+
 	POP_CSR(CSR_SIP)
 	POP_CSR(CSR_STVAL)
 	POP_CSR(CSR_SCAUSE)
@@ -345,8 +364,6 @@ restore_sp:
 	POP_CSR(CSR_SCOUNTEREN)
 	POP_CSR(CSR_STVEC)
 	POP_CSR(CSR_SIE)
-	#POP_CSR(sideleg)
-	#POP_CSR(sedeleg)
 	POP_CSR(CSR_SSTATUS)
 
 	# Pop Andes m-mode reg
