@@ -15,7 +15,8 @@
 #include "platform.h"
 
 int ae350_suspend_mode[AE350_HART_COUNT] = {0};
-void smu_suspend_prepare(char main_core, char enable){
+void smu_suspend_prepare(char main_core, char enable)
+{
 	if (main_core) {
 		if (enable) {
 			csr_set(CSR_MIE, MIP_MTIP);
@@ -105,3 +106,4 @@ void smu_check_pcs_status(int sleep_mode_status, int num_cpus)
 		}
 	}
 }
+

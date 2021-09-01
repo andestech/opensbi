@@ -86,7 +86,7 @@ static int ae350_pre_init(bool cold_boot)
 	uint32_t l2c_ctl_val = *l2c_ctl_base;
 
 	/* l2c_ctl_val=0xffffffff  ==> no_l2 */
-	has_l2 = (l2c_ctl_val==((uint32_t)~0U)) ? 0 : 1;
+	has_l2 = (l2c_ctl_val == ((uint32_t)~0U)) ? 0 : 1;
 	if (has_l2) {
 		if (!(l2c_ctl_val & V5_L2C_CTL_ENABLE_MASK))
 			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK |
@@ -94,7 +94,7 @@ static int ae350_pre_init(bool cold_boot)
 						V5_L2C_CTL_DPFDPT_MASK;
 
 		/* ram cycle settings */
-		/* 
+		/*
 		 * **Do NOT** change RAM cycle settings for Andes' EVB, but once you
 		 * you have done the integration, please uncomment the following and
 		 * do the proper setting for your platform.
@@ -164,7 +164,7 @@ static uintptr_t mcall_set_trigger(long type, uintptr_t data, unsigned int m,
 	return ret;
 }
 
-static uintptr_t mcall_set_pfm()
+static uintptr_t mcall_set_pfm(void)
 {
 	csr_clear(CSR_SLIP, MIP_SOVFIP);
 	csr_set(CSR_MIE, MIP_MOVFIP);
@@ -173,7 +173,7 @@ static uintptr_t mcall_set_pfm()
 
 static uintptr_t mcall_suspend_prepare(char main_core, char enable)
 {
-	smu_suspend_prepare(main_core,enable);
+	smu_suspend_prepare(main_core, enable);
 	return 0;
 }
 
@@ -199,7 +199,7 @@ static void mcall_restart(int cpu_nums)
 	tmp = (unsigned char *)dev_ptr;
 	*tmp = RESET_CMD;
 	__asm__("wfi");
-	while(1){};
+	while (1);
 }
 
 extern void cpu_resume(void);
@@ -281,11 +281,12 @@ static int ae350_system_reset(u32 type)
 }
 
 /* called flow:
-
-	1. kernel -> ae350_set_suspend_mode(light/deep) -> set variable: ae350_suspend_mode
-
-	2. cpu_stop() -> sbi_hsm_hart_stop() -> sbi_hsm_exit() ->
-		jump_warmboot() -> sbi_hsm_hart_wait() -> ae350_enter_suspend_mode() -> normal/light/deep */
+ *
+ *	1. kernel -> ae350_set_suspend_mode(light/deep) -> set variable: ae350_suspend_mode
+ *
+ *	2. cpu_stop() -> sbi_hsm_hart_stop() -> sbi_hsm_exit() ->
+ *		jump_warmboot() -> sbi_hsm_hart_wait() -> ae350_enter_suspend_mode() -> normal/light/deep
+ */
 int ae350_set_suspend_mode(int suspend_mode)
 {
 	u32 hartid = current_hartid();
