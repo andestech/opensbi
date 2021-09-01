@@ -4,7 +4,7 @@
  * Copyright (c) 2020 Andes Technology Corporation
  *
  * Authors:
- * 	Nick Hu <nickhu@andestech.com>
+ *	Nick Hu <nickhu@andestech.com>
  *	Nylon Chen <nylon7@andestech.com>
  */
 

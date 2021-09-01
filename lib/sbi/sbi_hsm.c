@@ -276,7 +276,7 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch,
 		*PCSn_PCS_CTL = 0x8;
 
 		// wait for wakeup procees is done
-		while ( (*PCSn_PCS_STATUS & 0x7) != 0);
+		while ((*PCSn_PCS_STATUS & 0x7) != 0);
 	}
 
 	rscratch = sbi_hartid_to_scratch(hartid);

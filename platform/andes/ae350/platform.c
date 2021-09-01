@@ -193,7 +193,7 @@ static uintptr_t mcall_set_trigger(long type, uintptr_t data, unsigned int m,
 	return ret;
 }
 
-static uintptr_t mcall_set_pfm()
+static uintptr_t mcall_set_pfm(void)
 {
 	csr_clear(CSR_SLIP, MIP_SOVFIP);
 	csr_set(CSR_MIE, MIP_MOVFIP);
@@ -202,7 +202,7 @@ static uintptr_t mcall_set_pfm()
 
 static uintptr_t mcall_suspend_prepare(char main_core, char enable)
 {
-	smu_suspend_prepare(main_core,enable);
+	smu_suspend_prepare(main_core, enable);
 	return 0;
 }
 
@@ -279,11 +279,12 @@ static int ae350_timer_init(bool cold_boot)
 }
 
 /* called flow:
-
-	1. kernel -> ae350_set_suspend_mode(light/deep) -> set variable: ae350_suspend_mode
-
-	2. cpu_stop() -> sbi_hsm_hart_stop() -> sbi_hsm_exit() ->
-		jump_warmboot() -> sbi_hsm_hart_wait() -> ae350_enter_suspend_mode() -> normal/light/deep */
+ *
+ *	1. kernel -> ae350_set_suspend_mode(light/deep) -> set variable: ae350_suspend_mode
+ *
+ *	2. cpu_stop() -> sbi_hsm_hart_stop() -> sbi_hsm_exit() ->
+ *		jump_warmboot() -> sbi_hsm_hart_wait() -> ae350_enter_suspend_mode() -> normal/light/deep
+ */
 int ae350_set_suspend_mode(int suspend_mode)
 {
 	u32 hartid = current_hartid();

@@ -32,6 +32,7 @@
 #define SMU_HARTn_RESET_VEC_LO(n) (SMU_RESET_VEC_LO_OFF + (n * 0x4))
 #define SMU_HARTn_RESET_VEC_HI(n) (SMU_RESET_VEC_HI_OFF + (n * 0x4))
 #define PCS_RESET           0x1
+#define RESET_CMD               0x1
 
 #define MAX_PCS_SLOT    7
 

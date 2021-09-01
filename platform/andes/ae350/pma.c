@@ -4,7 +4,7 @@
  * Copyright (c) 2020 Andes Technology Corporation
  *
  * Authors:
- * 	Nick Hu <nickhu@andestech.com>
+ *	Nick Hu <nickhu@andestech.com>
  *	Nylon Chen <nylon7@andestech.com>
  */
 
@@ -16,11 +16,12 @@
 
 unsigned long pma_used_table[PMA_NUM];
 
-void init_pma(void){
-  int i;
-  for (i = 0; i < PMA_NUM; i++) {
-    pma_used_table[i] = 0;
-  }
+void init_pma(void)
+{
+	int i;
+
+	for (i = 0; i < PMA_NUM; i++)
+		pma_used_table[i] = 0;
 }
 
 void mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size, unsigned long entry_id)
@@ -33,7 +34,7 @@ void mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size, unsig
 	if ((mmsc & PMA_MMSC_CFG) == 0)
 		return;
 
-	if ((pa & (size - 1)) !=0) {
+	if ((pa & (size - 1)) != 0) {
 		pa = pa & ~(size - 1);
 		size = size << 1;
 	}
@@ -43,7 +44,7 @@ void mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size, unsig
 	while (size_tmp != 0x1) {
 		size_tmp = size_tmp >> 1;
 		power++;
-		if (power >3)
+		if (power > 3)
 			shift = (shift << 1) | 0x1;
 	}
 
@@ -105,77 +106,77 @@ void mcall_free_pma(unsigned long entry_id)
 
 inline void write_pmaaddr(int i, unsigned long val)
 {
-  if (i == 0)
-        csr_write(PMAADDR_0, val);
-  else if (i == 1)
-        csr_write(PMAADDR_1, val);
-  else if (i == 2)
-        csr_write(PMAADDR_2, val);
-  else if (i == 3)
-        csr_write(PMAADDR_3, val);
-  else if (i == 4)
-        csr_write(PMAADDR_4, val);
-  else if (i == 5)
-        csr_write(PMAADDR_5, val);
-  else if (i == 6)
-        csr_write(PMAADDR_6, val);
-  else if (i == 7)
-        csr_write(PMAADDR_7, val);
-  else if (i == 8)
-        csr_write(PMAADDR_8, val);
-  else if (i == 9)
-        csr_write(PMAADDR_9, val);
-  else if (i == 10)
-        csr_write(PMAADDR_10, val);
-  else if (i == 11)
-        csr_write(PMAADDR_11, val);
-  else if (i == 12)
-        csr_write(PMAADDR_12, val);
-  else if (i == 13)
-        csr_write(PMAADDR_13, val);
-  else if (i == 14)
-        csr_write(PMAADDR_14, val);
-  else if (i == 15)
-        csr_write(PMAADDR_15, val);
+	if (i == 0)
+		csr_write(PMAADDR_0, val);
+	else if (i == 1)
+		csr_write(PMAADDR_1, val);
+	else if (i == 2)
+		csr_write(PMAADDR_2, val);
+	else if (i == 3)
+		csr_write(PMAADDR_3, val);
+	else if (i == 4)
+		csr_write(PMAADDR_4, val);
+	else if (i == 5)
+		csr_write(PMAADDR_5, val);
+	else if (i == 6)
+		csr_write(PMAADDR_6, val);
+	else if (i == 7)
+		csr_write(PMAADDR_7, val);
+	else if (i == 8)
+		csr_write(PMAADDR_8, val);
+	else if (i == 9)
+		csr_write(PMAADDR_9, val);
+	else if (i == 10)
+		csr_write(PMAADDR_10, val);
+	else if (i == 11)
+		csr_write(PMAADDR_11, val);
+	else if (i == 12)
+		csr_write(PMAADDR_12, val);
+	else if (i == 13)
+		csr_write(PMAADDR_13, val);
+	else if (i == 14)
+		csr_write(PMAADDR_14, val);
+	else if (i == 15)
+		csr_write(PMAADDR_15, val);
 }
 
 inline unsigned long read_pmacfg(int i)
 {
-  unsigned long val=0;
+	unsigned long val = 0;
 
 #if __riscv_xlen == 64
-  if (i == 0)
-        val = csr_read(PMACFG_0);
-  else if (i == 1)
-        val = csr_read(PMACFG_2);
+	if (i == 0)
+		val = csr_read(PMACFG_0);
+	else if (i == 1)
+		val = csr_read(PMACFG_2);
 #else
-  if (i == 0)
-        val = csr_read(PMACFG_0);
-  else if (i == 1)
-        val = csr_read(PMACFG_1);
-  else if (i == 2)
-        val = csr_read(PMACFG_2);
-  else if (i == 3)
-        val = csr_read(PMACFG_3);
+	if (i == 0)
+		val = csr_read(PMACFG_0);
+	else if (i == 1)
+		val = csr_read(PMACFG_1);
+	else if (i == 2)
+		val = csr_read(PMACFG_2);
+	else if (i == 3)
+		val = csr_read(PMACFG_3);
 #endif
-  return val;
+	return val;
 }
 
 inline void write_pmacfg(int i, unsigned long val)
 {
 #if __riscv_xlen == 64
-  if (i == 0)
-        csr_write(PMACFG_0, val);
-  else if (i == 1)
-        csr_write(PMACFG_2, val);
+	if (i == 0)
+		csr_write(PMACFG_0, val);
+	else if (i == 1)
+		csr_write(PMACFG_2, val);
 #else
-  if (i == 0)
-        csr_write(PMACFG_0, val);
-  else if (i == 1)
-        csr_write(PMACFG_1, val);
-  else if (i == 2)
-        csr_write(PMACFG_2, val);
-  else if (i == 3)
-        csr_write(PMACFG_3, val);
+	if (i == 0)
+		csr_write(PMACFG_0, val);
+	else if (i == 1)
+		csr_write(PMACFG_1, val);
+	else if (i == 2)
+		csr_write(PMACFG_2, val);
+	else if (i == 3)
+		csr_write(PMACFG_3, val);
 #endif
 }

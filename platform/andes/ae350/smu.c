@@ -13,7 +13,8 @@
 #include "platform.h"
 
 int ae350_suspend_mode[AE350_HART_COUNT_MAX] = {0};
-void smu_suspend_prepare(char main_core, char enable){
+void smu_suspend_prepare(char main_core, char enable)
+{
 	if (main_core) {
 		if (enable) {
 			csr_set(CSR_MIE, MIP_MTIP);

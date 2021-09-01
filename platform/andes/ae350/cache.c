@@ -28,9 +28,9 @@ uintptr_t mcall_set_mmisc_ctl(unsigned long input)
 
 uintptr_t mcall_icache_op(unsigned int enable)
 {
-	if (enable) {
+	if (enable)
 		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_IC_EN);
-	} else {
+	else {
 		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_IC_EN);
 		asm volatile("fence.i\n\t");
 	}
@@ -46,40 +46,40 @@ uintptr_t mcall_dcache_wbinval_all(void)
 
 uintptr_t mcall_l1_cache_i_prefetch_op(unsigned long enable)
 {
-	if (enable) {
+	if (enable)
 		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1I_PREFETCH_EN);
-	} else {
+	else
 		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1I_PREFETCH_EN);
-	}
+
 	return 0;
 }
 
 uintptr_t mcall_l1_cache_d_prefetch_op(unsigned long enable)
 {
-	if (enable) {
+	if (enable)
 		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1D_PREFETCH_EN);
-	} else {
+	else
 		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_L1D_PREFETCH_EN);
-	}
+
 	return 0;
 }
 
 uintptr_t mcall_non_blocking_load_store(unsigned long enable)
 {
-	if (enable) {
+	if (enable)
 		csr_set(CSR_MCACHE_CTL, V5_MMISC_CTL_NON_BLOCKING_EN);
-	} else {
+	else
 		csr_clear(CSR_MCACHE_CTL, V5_MMISC_CTL_NON_BLOCKING_EN);
-	}
+
 	return 0;
 }
 
 uintptr_t mcall_write_around(unsigned long enable)
 {
-	if (enable) {
+	if (enable)
 		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_WAROUND_1_EN);
-	} else {
+	else
 		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_WAROUND_1_EN);
-	}
+
 	return 0;
 }
