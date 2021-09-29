@@ -350,13 +350,13 @@ int ae350_enter_suspend_mode(int suspend_mode, int main_core,
 			// set SMU wakeup enable & MISC control
 			smu_set_wakeup_enable(hartid, main_core, 0);
 			// Disable higher privilege's non-wakeup event
-			smu_suspend_prepare(main_core, false);
+			smu_suspend_prepare(-1, false);
 			// set SMU Deep sleep command
 			smu_set_sleep(hartid, DeepSleep_CTL);
 			// stop & wfi & resume
 			cpu_suspend2ram();
 			// enable privilege
-			smu_suspend_prepare(main_core, true);
+			smu_suspend_prepare(-1, true);
 		}
 	}
 
