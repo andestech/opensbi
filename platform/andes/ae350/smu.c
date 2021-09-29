@@ -15,29 +15,35 @@
 #include "platform.h"
 
 int ae350_suspend_mode[AE350_HART_COUNT] = {0};
-void smu_suspend_prepare(char main_core, char enable)
+uintptr_t MIE_BACKUP[AE350_HART_COUNT] = {0};
+uintptr_t SIE_BACKUP[AE350_HART_COUNT] = {0};
+uintptr_t UIE_BACKUP[AE350_HART_COUNT] = {0};
+void smu_suspend_prepare(int main_core, int enable)
 {
-	if (main_core) {
-		if (enable) {
-			csr_set(CSR_MIE, MIP_MTIP);
-			csr_set(CSR_MIE, MIP_MSIP);
-			csr_set(CSR_MIE, MIP_MEIP);
-		} else {
-			csr_clear(CSR_MIE, MIP_MTIP);
-			csr_clear(CSR_MIE, MIP_MSIP);
-			csr_clear(CSR_MIE, MIP_MEIP);
-		}
+	u32 hartid = current_hartid();
 
+	if (enable) {
+		csr_write(CSR_UIE, UIE_BACKUP[hartid]);
+		csr_write(CSR_SIE, SIE_BACKUP[hartid]);
+		csr_write(CSR_MIE, MIE_BACKUP[hartid]);
 	} else {
-		if (enable) {
-			csr_set(CSR_MIE, MIP_MEIP);
-			csr_set(CSR_MIE, MIP_MSIP);
-			csr_set(CSR_MIE, MIP_MTIP);
-		} else {
-			csr_clear(CSR_MIE, MIP_MEIP);
-			csr_clear(CSR_MIE, MIP_MTIP);
+		UIE_BACKUP[hartid] = csr_read(CSR_UIE);
+		SIE_BACKUP[hartid] = csr_read(CSR_SIE);
+		MIE_BACKUP[hartid] = csr_read(CSR_MIE);
 
-			// enable IPI
+		csr_write(CSR_UIE, 0);
+		csr_write(CSR_SIE, 0);
+		csr_write(CSR_MIE, 0);
+
+		if (main_core == 1) {
+			/*
+			 * Enable external interrupt.
+			 * For Andes, we enabled SEIP due to our perpherals
+			 * are register to S-mode plic.
+			 */
+			csr_set(CSR_SIE, MIP_SEIP);
+		} else if (main_core == 0){
+			/* Other cores enable IPI */
 			csr_set(CSR_MIE, MIP_MSIP);
 		}
 	}
