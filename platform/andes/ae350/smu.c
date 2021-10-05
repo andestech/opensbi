@@ -17,29 +17,25 @@
 int ae350_suspend_mode[AE350_HART_COUNT] = {0};
 uintptr_t MIE_BACKUP[AE350_HART_COUNT] = {0};
 uintptr_t SIE_BACKUP[AE350_HART_COUNT] = {0};
-uintptr_t UIE_BACKUP[AE350_HART_COUNT] = {0};
 void smu_suspend_prepare(int main_core, int enable)
 {
 	u32 hartid = current_hartid();
 
 	if (enable) {
-		csr_write(CSR_UIE, UIE_BACKUP[hartid]);
 		csr_write(CSR_SIE, SIE_BACKUP[hartid]);
 		csr_write(CSR_MIE, MIE_BACKUP[hartid]);
 	} else {
-		UIE_BACKUP[hartid] = csr_read(CSR_UIE);
 		SIE_BACKUP[hartid] = csr_read(CSR_SIE);
 		MIE_BACKUP[hartid] = csr_read(CSR_MIE);
 
-		csr_write(CSR_UIE, 0);
 		csr_write(CSR_SIE, 0);
 		csr_write(CSR_MIE, 0);
 
 		if (main_core == 1) {
 			/*
 			 * Enable external interrupt.
-			 * For Andes, we enabled SEIP due to our perpherals
-			 * are register to S-mode plic.
+			 * For Andes, we enabled SEIP because our peripherals
+			 * are registered to S-mode context.
 			 */
 			csr_set(CSR_SIE, MIP_SEIP);
 		} else if (main_core == 0){
