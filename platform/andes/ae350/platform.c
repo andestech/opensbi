@@ -92,22 +92,25 @@ static uintptr_t mcall_suspend_backup(void)
 	return 0;
 }
 
-static void mcall_restart(int cpu_nums)
+static void mcall_restart(unsigned int cpu_num)
 {
 	int i;
-	unsigned int *dev_ptr;
-	unsigned char *tmp;
-	for (i = 0; i < cpu_nums; i++) {
+	unsigned int *dev_ptr;			/* smu reset vector register is 32 bit */
+	unsigned char *cmd;				/* smu reset cmd register is 8 bit */
+
+
+	for (i = 0; i < cpu_num; i++) {
 		dev_ptr = (unsigned int *)((unsigned long)SMU_BASE + SMU_RESET_VEC_OFF
-			+ SMU_RESET_VEC_PER_CORE*i);
+			+ SMU_RESET_VEC_PER_CORE * i);
 		*dev_ptr = DRAM_BASE;
 	}
 
-	dev_ptr = (unsigned int *)((unsigned int)SMU_BASE + PCS0_CTL_OFF);
-	tmp = (unsigned char *)dev_ptr;
-	*tmp = RESET_CMD;
-	__asm__("wfi");
-	while(1){};
+	dev_ptr = (unsigned int *)((unsigned long)SMU_BASE + SMUCR_OFF);
+	cmd = (unsigned char *)dev_ptr;
+	*cmd = SMUCR_RESET;
+
+	asm volatile("ebreak");			/* should not enter here */
+	__builtin_unreachable();
 }
 
 extern void cpu_resume(void);
