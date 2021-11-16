@@ -81,12 +81,23 @@ void mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size, unsig
 
 void mcall_free_pma(unsigned long entry_id)
 {
+	unsigned long pmacfg_val;
+	char *pmaxcfg;
+
 	if (entry_id < PMA_NUM) {
 		pma_used_table[entry_id] = 0;
 #if __riscv_xlen == 64
-		write_pmacfg(entry_id / 8, 0);
+		pmacfg_val = read_pmacfg(entry_id / 8);
+		pmaxcfg = (char *)&pmacfg_val;
+		pmaxcfg = pmaxcfg + (entry_id % 8);
+		*pmaxcfg = 0;
+		write_pmacfg(entry_id / 8, pmacfg_val);
 #else
-		write_pmacfg(entry_id / 4, 0);
+		pmacfg_val = read_pmacfg(entry_id / 4);
+		pmaxcfg = (char *)&pmacfg_val;
+		pmaxcfg = pmaxcfg + (entry_id % 4);
+		*pmaxcfg = 0;
+		write_pmacfg(entry_id / 4, pmacfg_val);
 #endif
 		return;
 	}
