@@ -7,6 +7,64 @@
  *   Nylon Chen <nylon7@andestech.com>
  */
 
+#include "platform.h"
+
+#define MAX_CACHE_LINE_SIZE 256
+
+/* L2 cache registers */
+#define L2C_REG_CFG_OFFSET	0
+#define L2C_REG_CTL_OFFSET	0x8
+#define L2C_HPM_C0_CTL_OFFSET	0x10
+#define L2C_HPM_C1_CTL_OFFSET	0x18
+#define L2C_HPM_C2_CTL_OFFSET	0x20
+#define L2C_HPM_C3_CTL_OFFSET	0x28
+#define L2C_REG_C0_CMD_OFFSET	0x40
+#define L2C_REG_C0_ACC_OFFSET	0x48
+#define L2C_REG_C1_CMD_OFFSET	0x50
+#define L2C_REG_C1_ACC_OFFSET	0x58
+#define L2C_REG_C2_CMD_OFFSET	0x60
+#define L2C_REG_C2_ACC_OFFSET	0x68
+#define L2C_REG_C3_CMD_OFFSET	0x70
+#define L2C_REG_C3_ACC_OFFSET	0x78
+#define L2C_REG_STATUS_OFFSET	0x80
+#define L2C_REG_C0_HPM_OFFSET	0x200
+
+/* L2 CCTL status */
+#define CCTL_L2_STATUS_IDLE	0
+#define CCTL_L2_STATUS_PROCESS	1
+#define CCTL_L2_STATUS_ILLEGAL	2
+/* L2 CCTL status cores mask */
+#define CCTL_L2_STATUS_C0_MASK	0xF
+#define CCTL_L2_STATUS_C1_MASK	0xF0
+#define CCTL_L2_STATUS_C2_MASK	0xF00
+#define CCTL_L2_STATUS_C3_MASK	0xF000
+
+/* L2 cache operation */
+#define CCTL_L2_PA_INVAL	0x8
+#define CCTL_L2_PA_WB		0x9
+#define CCTL_L2_PA_WBINVAL	0xA
+#define CCTL_L2_WBINVAL_ALL	0x12
+
+#define L2C_HPM_PER_CORE_OFFSET		0x8
+#define L2C_REG_PER_CORE_OFFSET		0x10
+#define CCTL_L2_STATUS_PER_CORE_OFFSET	4
+#define L2C_REG_CN_CMD_OFFSET(n)	\
+	L2C_REG_C0_CMD_OFFSET + (n * L2C_REG_PER_CORE_OFFSET)
+#define L2C_REG_CN_ACC_OFFSET(n)	\
+	L2C_REG_C0_ACC_OFFSET + (n * L2C_REG_PER_CORE_OFFSET)
+#define CCTL_L2_STATUS_CN_MASK(n)	\
+	CCTL_L2_STATUS_C0_MASK << (n * CCTL_L2_STATUS_PER_CORE_OFFSET)
+#define L2C_HPM_CN_CTL_OFFSET(n)	\
+	L2C_HPM_C0_CTL_OFFSET + (n * L2C_HPM_PER_CORE_OFFSET)
+#define L2C_REG_CN_HPM_OFFSET(n)	\
+	L2C_REG_C0_HPM_OFFSET + (n * L2C_HPM_PER_CORE_OFFSET)
+
+void cpu_dcache_inval_line(unsigned long start, unsigned long last_hartid);
+void cpu_dcache_wb_line(unsigned long start, unsigned long last_hartid);
+void cpu_dcache_wbinval_all(unsigned long start, unsigned long last_hartid);
+void cpu_dma_inval_range(unsigned long pa, unsigned long size, unsigned long last_hartid);
+void cpu_dma_wb_range(unsigned long pa, unsigned long size, unsigned long last_hartid);
+
 uintptr_t mcall_set_mcache_ctl(unsigned long input);
 uintptr_t mcall_set_mmisc_ctl(unsigned long input);
 uintptr_t mcall_icache_op(unsigned int enable);

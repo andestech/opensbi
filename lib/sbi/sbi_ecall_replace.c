@@ -18,6 +18,7 @@
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_tlb.h>
 #include <sbi/sbi_trap.h>
+#include <sbi/sbi_cache.h>
 
 static int sbi_ecall_time_handler(unsigned long extid, unsigned long funcid,
 				  const struct sbi_trap_regs *regs,
@@ -52,6 +53,7 @@ static int sbi_ecall_rfence_handler(unsigned long extid, unsigned long funcid,
 	int ret = 0;
 	unsigned long vmid;
 	struct sbi_tlb_info tlb_info;
+	struct sbi_cache_info cache_info;
 	u32 source_hart = current_hartid();
 
 	if (funcid >= SBI_EXT_RFENCE_REMOTE_HFENCE_GVMA_VMID &&
@@ -100,6 +102,21 @@ static int sbi_ecall_rfence_handler(unsigned long extid, unsigned long funcid,
 		SBI_TLB_INFO_INIT(&tlb_info, regs->a2, regs->a3, regs->a4, 0,
 				  sbi_tlb_local_sfence_vma_asid, source_hart);
 		ret = sbi_tlb_request(regs->a0, regs->a1, &tlb_info);
+		break;
+	case SBI_EXT_RCACHE_INVAL_LINE:
+		SBI_CACHE_INFO_INIT(&cache_info, regs->a2, regs->a3, 0, regs->a5,
+				  sbi_cache_invalidate_line, source_hart);
+		ret = sbi_tlb_request(regs->a0, regs->a1, (struct sbi_tlb_info *)&cache_info);
+		break;
+	case SBI_EXT_RCACHE_INVAL_RANGE:
+		SBI_CACHE_INFO_INIT(&cache_info, regs->a2, regs->a3, 0, regs->a5,
+				  sbi_cache_invalidate_range, source_hart);
+		ret = sbi_tlb_request(regs->a0, regs->a1, (struct sbi_tlb_info *)&cache_info);
+		break;
+	case SBI_EXT_RCACHE_WB_RANGE:
+		SBI_CACHE_INFO_INIT(&cache_info, regs->a2, regs->a3, 0, regs->a5,
+				  sbi_cache_wb_range, source_hart);
+		ret = sbi_tlb_request(regs->a0, regs->a1, (struct sbi_tlb_info *)&cache_info);
 		break;
 	default:
 		ret = SBI_ENOTSUPP;

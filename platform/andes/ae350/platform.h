@@ -234,6 +234,9 @@
 #define V5_MCACHE_CTL_DC_COHSTA_OFFSET    20
 
 /*nds cctl command*/
+#define V5_UCCTL_L1D_VA_INVAL	0
+#define V5_UCCTL_L1D_VA_WB	1
+#define V5_UCCTL_L1D_VA_WBINVAL	2
 #define V5_UCCTL_L1D_WBINVAL_ALL 6
 #define V5_UCCTL_L1D_WB_ALL 7
 #define V5_UCCTL_L1D_INVAL_ALL 23
@@ -278,7 +281,7 @@
 #ifndef __ASSEMBLER__
 extern u32 ae350_suspend_mode[];
 extern struct sbi_ipi_device plicsw_ipi;
-
+extern struct l2c_data l2c;
 struct l2c_data {
 	unsigned long addr;
 };

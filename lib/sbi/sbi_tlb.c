@@ -17,6 +17,7 @@
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_tlb.h>
+#include <sbi/sbi_cache.h>
 #include <sbi/sbi_hfence.h>
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_console.h>
@@ -188,6 +189,31 @@ void sbi_tlb_local_fence_i(struct sbi_tlb_info *tinfo)
 	sbi_pmu_ctr_incr_fw(SBI_PMU_FW_FENCE_I_RECVD);
 
 	__asm__ __volatile("fence.i");
+}
+
+void sbi_cache_invalidate_line(struct sbi_cache_info *cinfo)
+{
+	cpu_dcache_inval_line(cinfo->start, cinfo->last_hartid);
+}
+
+void sbi_cache_invalidate_range(struct sbi_cache_info *cinfo)
+{
+	cpu_dma_inval_range(cinfo->start, cinfo->size, cinfo->last_hartid);
+}
+
+void sbi_cache_wb_line(struct sbi_cache_info *cinfo)
+{
+	cpu_dcache_wb_line(cinfo->start, cinfo->last_hartid);
+}
+
+void sbi_cache_wb_range(struct sbi_cache_info *cinfo)
+{
+	cpu_dma_wb_range(cinfo->start, cinfo->size, cinfo->last_hartid);
+}
+
+void sbi_cache_wbinval_all(struct sbi_cache_info *cinfo)
+{
+	cpu_dcache_wbinval_all(cinfo->start, cinfo->last_hartid);
 }
 
 static void tlb_pmu_incr_fw_ctr(struct sbi_tlb_info *data)
