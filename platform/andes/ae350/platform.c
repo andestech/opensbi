@@ -82,8 +82,11 @@ static int ae350_pre_init(bool cold_boot)
 	csr_write(CSR_MMISC_CTL, mmisc_ctl_val);
 
 	/* enable L2 cache */
+	uint32_t *l2c_cfg_base = (void*)AE350_L2C_ADDR;
 	uint32_t *l2c_ctl_base = (void *)AE350_L2C_ADDR + V5_L2C_CTL_OFFSET;
+	uint32_t l2c_cfg_val = *l2c_cfg_base;
 	uint32_t l2c_ctl_val = *l2c_ctl_base;
+	uint32_t version = (l2c_cfg_val & V5_L2C_CFG_VERSION_MASK) >> V5_L2C_CFG_VERSION_OFFSET;
 
 	/* l2c_ctl_val=0xffffffff  ==> no_l2 */
 	has_l2 = (l2c_ctl_val == ((uint32_t)~0U)) ? 0 : 1;
@@ -92,6 +95,10 @@ static int ae350_pre_init(bool cold_boot)
 			l2c_ctl_val |= V5_L2C_CTL_ENABLE_MASK |
 						V5_L2C_CTL_IPFDPT_MASK |
 						V5_L2C_CTL_DPFDPT_MASK;
+
+		/* Gen2 L2 defaults to on, so needs extra setting */
+		if (version >= 16)
+			l2c_ctl_val |= V5_L2C_CTL_IPFDPT_MASK | V5_L2C_CTL_DPFDPT_MASK;
 
 		/* ram cycle settings */
 		/*
