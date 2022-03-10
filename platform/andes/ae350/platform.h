@@ -32,6 +32,9 @@
 /***********************************
  * AndeStar V5 machine mode CSRs
  **********************************/
+/* nds mcache_ctl register*/
+#define CSR_MCACHECTL       0x7ca
+
 
 /* Configuration Registers */
 #define CSR_MICM_CFG        0xfc0
@@ -130,7 +133,7 @@
  *		SBI_PLATFORM_HAS_HART_SECONDARY_BOOT)
  */
 
-#ifndef __ASSEMBLY__
+#ifndef __ASSEMBLER__
 enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS = 0,
 	SBI_EXT_ANDES_GET_MMISC_CTL_STATUS,
