@@ -265,7 +265,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		ret = mcall_write_around(regs->a0);
 		break;
 	case SBI_EXT_ANDES_TRIGGER:
-		*out_value = mcall_set_trigger(args[0], args[1], 0, 0, args[2]);
+		*out_value = mcall_set_trigger(regs->a0, regs->a1, 0, 0, regs->a2);
 		break;
 	case SBI_EXT_ANDES_SET_PFM:
 		ret = mcall_set_pfm();
@@ -274,25 +274,25 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		*out_value = csr_read(CSR_MPFT_CTL);
 		break;
 	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
-		csr_write(CSR_MPFT_CTL, args[0]);
+		csr_write(CSR_MPFT_CTL, regs->a0);
 		break;
 	case SBI_EXT_ANDES_SUSPEND_PREPARE:
-		ret = mcall_suspend_prepare(args[0], args[1]);
+		ret = mcall_suspend_prepare(regs->a0, regs->a1);
 		break;
 	case SBI_EXT_ANDES_SUSPEND_MEM:
 		ret = mcall_suspend_backup();
 		break;
 	case SBI_EXT_ANDES_RESTART:
-		mcall_restart(args[0]);
+		mcall_restart(regs->a0);
 		break;
 	case SBI_EXT_ANDES_RESET_VEC:
-		mcall_set_reset_vec(args[0]);
+		mcall_set_reset_vec(regs->a0);
 		break;
 	case SBI_EXT_ANDES_SET_PMA:
-		mcall_set_pma(args[0], args[1], args[2], args[3]);
+		mcall_set_pma(regs->a0, regs->a1, regs->a2, regs->a3);
 		break;
 	case SBI_EXT_ANDES_FREE_PMA:
-		mcall_free_pma(args[0]);
+		mcall_free_pma(regs->a0);
 		break;
 	case SBI_EXT_ANDES_PROBE_PMA:
 		*out_value = ((csr_read(CSR_MMSC_CFG) & 0x40000000) != 0);
