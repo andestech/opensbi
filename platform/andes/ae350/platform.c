@@ -8,6 +8,7 @@
  *   Nylon Chen <nylon7@andestech.com>
  */
 
+#include <libfdt.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_encoding.h>
 #include <sbi/sbi_console.h>
@@ -29,6 +30,24 @@ static struct plic_data plic = {
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
 int has_l2;
+
+static void detect_l2c_mmap(void *fdt)
+{
+	uint32_t *l2c_cfg_base = (void*)AE350_L2C_ADDR;
+	uint32_t l2c_cfg_val = *l2c_cfg_base;
+	uint32_t l2c_mmap = (l2c_cfg_val & V5_L2C_CFG_MAP_MASK) >> V5_L2C_CFG_MAP_OFFSET;
+	int err, l2c_offset;
+
+	err = fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 32);
+	if (err < 0)
+		return;
+
+	l2c_offset = fdt_path_offset(fdt, "/l2-cache");
+	if (l2c_offset < 0)
+		return;
+
+	fdt_setprop_u32(fdt, l2c_offset, "mmap", l2c_mmap);
+}
 
 static int ae350_pre_init(bool cold_boot)
 {
@@ -142,6 +161,9 @@ static int ae350_final_init(bool cold_boot)
 
 	fdt = sbi_scratch_thishart_arg1_ptr();
 	fdt_fixups(fdt);
+
+	if (has_l2)
+		detect_l2c_mmap(fdt);
 
 	init_pma();
 	trigger_init();
