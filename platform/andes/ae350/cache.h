@@ -64,7 +64,7 @@ static inline __attribute__((always_inline)) uintptr_t mcall_dcache_op(unsigned 
 		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
 	} else {
 		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
-		csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WB_ALL);
+		csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
 
 		if (is_andestar45_series()) {
 			uintptr_t mcache_ctl_val = csr_read(CSR_MCACHE_CTL);
