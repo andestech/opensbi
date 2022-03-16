@@ -32,9 +32,6 @@
 /***********************************
  * AndeStar V5 machine mode CSRs
  **********************************/
-/* nds mcache_ctl register*/
-#define CSR_MCACHECTL       0x7ca
-
 /* Configuration Registers */
 #define CSR_MICM_CFG        0xfc0
 #define CSR_MDCM_CFG        0xfc1
