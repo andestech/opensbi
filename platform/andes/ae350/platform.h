@@ -19,6 +19,7 @@
 #define AE350_PLICSW_ADDR       0xe6400000
 
 #define AE350_PLMT_ADDR         0xe6000000
+#define AE350_PLMT_FREQ         60000000
 
 #define AE350_L2C_ADDR          0xe0500000
 
