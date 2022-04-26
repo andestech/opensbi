@@ -46,11 +46,14 @@
  * PCS3 --> Power domain for Core0 and L2C.
  * PCSN --> Power domain for Core (N-3)
  */
+#define PCS0_WE_OFF     0x90
+#define PCSm_WE_OFF(hartid)  (PCS0_WE_OFF + 0x20 * (hartid + 3))
+
 
 #define PCSN_WE_OFF(n)          n * 0x20 + PCS0_WE_OFF
-#define CN_PCS_WE_OFF(n)        (n + 3) * 0x20 + PCS0_WE_OFF
 #define CN_PCS_STATUS_OFF(n)    (n + 3) * 0x20 + PCS0_STATUS_OFF
-#define CN_PCS_CTL_OFF(n)       (n + 3) * 0x20 + PCS0_CTL_OFF
+#define PCS0_CTL_OFF    0x94
+#define PCSm_CTL_OFF(hartid) (PCS0_CTL_OFF + 0x20 * (hartid + 3))
 
 // wakeup events source offset
 #define PCS_WAKE_DBG_OFF	28

@@ -7,9 +7,7 @@
  *   Dylan <dylan@andestech.com>
  */
 
-#include <sbi/sbi_types.h>
 #include <sbi/riscv_asm.h>
-#include <sbi/sbi_console.h>
 #include <sbi/riscv_io.h>
 #include "smu.h"
 
@@ -43,7 +41,7 @@ void smu_suspend_prepare(char main_core, char enable){
 
 void smu_set_sleep(int cpu, unsigned char sleep)
 {
-	volatile void *smu_pcs_ctl_base = (void *)((unsigned long)SMU_BASE + CN_PCS_CTL_OFF(cpu));
+	volatile void *smu_pcs_ctl_base = (void *)((unsigned long)SMU_BASE + PCSm_CTL_OFF(cpu));
 	unsigned long smu_val = readl(smu_pcs_ctl_base);
 	unsigned char *ctl = (unsigned char *)&smu_val;
 
@@ -57,7 +55,7 @@ void smu_set_sleep(int cpu, unsigned char sleep)
 
 void smu_set_wakeup_enable(int cpu, unsigned int events)
 {
-	volatile void *smu_we_base = (void *)((unsigned long)SMU_BASE + CN_PCS_WE_OFF(cpu));
+	volatile void *smu_we_base = (void *)((unsigned long)SMU_BASE + PCSm_WE_OFF(cpu));
 	if (cpu == 0)
 		events |= (1 << PCS_WAKE_DBG_OFF);
 
