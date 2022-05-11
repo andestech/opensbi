@@ -15,7 +15,7 @@
 #include "platform.h"
 
 static u32 plicsw_ipi_hart_count;
-static struct plicsw plicsw_dev[AE350_HART_COUNT];
+static struct plicsw plicsw_dev[AE350_HART_COUNT_MAX];
 
 static inline void plicsw_claim(void)
 {
@@ -102,13 +102,13 @@ int plicsw_cold_ipi_init(unsigned long base, u32 hart_count)
 	/* Setup source priority */
 	uint32_t *priority = (void *)base + PLICSW_PRIORITY_BASE;
 
-	for (int i = 0; i < AE350_HART_COUNT * PLICSW_PENDING_PER_HART; i++)
+	for (int i = 0; i < hart_count * PLICSW_PENDING_PER_HART; i++)
 		writel(1, &priority[i]);
 
 	/* Setup target enable */
 	uint32_t enable_mask = PLICSW_HART_MASK;
 
-	for (int i = 0; i < AE350_HART_COUNT; i++) {
+	for (int i = 0; i < hart_count; i++) {
 		uint32_t *enable = (void *)base + PLICSW_ENABLE_BASE
 			+ PLICSW_ENABLE_PER_HART * i;
 		writel(enable_mask, &enable[0]);
@@ -118,7 +118,7 @@ int plicsw_cold_ipi_init(unsigned long base, u32 hart_count)
 	/* Figure-out PLICSW IPI register address */
 	plicsw_ipi_hart_count = hart_count;
 
-	for (u32 hartid = 0; hartid < AE350_HART_COUNT; hartid++) {
+	for (u32 hartid = 0; hartid < hart_count; hartid++) {
 		plicsw_dev[hartid].source_id = 0;
 		plicsw_dev[hartid].plicsw_pending =
 			(void *)base

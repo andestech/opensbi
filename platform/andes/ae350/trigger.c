@@ -14,7 +14,7 @@
 
 /* Record the status of trigger used by M-mode */
 static struct trigger_module trigger_modules[][TRIGGER_MAX] = {
-  [0 ... AE350_HART_COUNT - 1][0 ... TRIGGER_MAX - 1] = {
+  [0 ... AE350_HART_COUNT_MAX - 1][0 ... TRIGGER_MAX - 1] = {
     .used = 0, .type = TRIGGER_TYPE_MCONTROL} };
 static int total_triggers = TRIGGER_MAX;
 static spinlock_t trigger_lock = SPIN_LOCK_INITIALIZER;

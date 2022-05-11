@@ -11,7 +11,7 @@
 #ifndef _AE350_PLATFORM_H_
 #define _AE350_PLATFORM_H_
 
-#define AE350_HART_COUNT        4
+#define AE350_HART_COUNT_MAX    4
 
 #define AE350_PLIC_ADDR         0xe4000000
 #define AE350_PLIC_NUM_SOURCES      71

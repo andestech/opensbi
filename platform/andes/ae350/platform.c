@@ -19,6 +19,7 @@
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/irqchip/plic.h>
 #include <sbi_utils/serial/uart8250.h>
+#include <libfdt.h>
 #include "platform.h"
 #include "plicsw.h"
 #include "plmt.h"
@@ -32,6 +33,34 @@ static struct plic_data plic = {
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
 extern int ae350_suspend_mode;
+extern struct sbi_platform platform;
+
+unsigned long fw_platform_init(unsigned long arg0, unsigned long arg1,
+				unsigned long arg2, unsigned long arg3,
+				unsigned long arg4)
+{
+	void *fdt = (void *)arg1;
+	u32 max_hartid;
+	int root_offset, cpus_offset;
+
+	root_offset = fdt_path_offset(fdt, "/");
+	if (root_offset < 0)
+		goto fail;
+
+	/* Get hart count */
+	cpus_offset = fdt_parse_max_hart_id(fdt, &max_hartid);
+	if (cpus_offset < 0)
+		goto fail;
+
+	platform.hart_count = max_hartid + 1;
+
+	// Return original FDT pointer
+	return arg1;
+
+fail:
+	while (1)
+		wfi();
+}
 
 /* Platform final initialization. */
 static int ae350_final_init(bool cold_boot)
@@ -163,10 +192,11 @@ static struct sbi_ipi_device plicsw_ipi = {
 static int ae350_ipi_init(bool cold_boot)
 {
 	int ret;
+	u32 hart_count = sbi_platform_thishart_ptr()->hart_count;
 
 	if (cold_boot) {
 		ret = plicsw_cold_ipi_init(AE350_PLICSW_ADDR,
-					   AE350_HART_COUNT);
+					   hart_count);
 		if (ret)
 			return ret;
 
@@ -180,10 +210,11 @@ static int ae350_ipi_init(bool cold_boot)
 static int ae350_timer_init(bool cold_boot)
 {
 	int ret;
+	u32 hart_count = sbi_platform_thishart_ptr()->hart_count;
 
 	if (cold_boot) {
 		ret = plmt_cold_timer_init(AE350_PLMT_ADDR,
-					   AE350_HART_COUNT);
+					   hart_count);
 		if (ret)
 			return ret;
 	}
@@ -342,12 +373,12 @@ const struct sbi_platform_operations platform_ops = {
 	.vendor_ext_provider = ae350_vendor_ext_provider
 };
 
-const struct sbi_platform platform = {
+struct sbi_platform platform = {
 	.opensbi_version = OPENSBI_VERSION,
 	.platform_version = SBI_PLATFORM_VERSION(0x0, 0x01),
 	.name = "Andes AE350",
 	.features = SBI_PLATFORM_DEFAULT_FEATURES,
-	.hart_count = AE350_HART_COUNT,
+	.hart_count = AE350_HART_COUNT_MAX,
 	.hart_stack_size = SBI_PLATFORM_DEFAULT_HART_STACK_SIZE,
 	.platform_ops_addr = (unsigned long)&platform_ops
 };
