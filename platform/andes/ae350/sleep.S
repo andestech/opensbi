@@ -202,12 +202,9 @@ cpu_suspend2ram:
 	csrrc	t0, CSR_MCACHE_CTL, 0x2
 
 	# check if l2 exist
-	la	t0, has_l2
+	li	t0, 0xe0500000
 	lw	t1, 0(t0)
-	li	t0, 1
-#	li	t0, 0xe0500000
-#	lw	t1, 0(t0)
-#	li	t0, -1
+	li	t0, -1
 	bne	t0, t1, no_l2
 
 	# check if it is core 0
