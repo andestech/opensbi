@@ -62,6 +62,32 @@ fail:
 		wfi();
 }
 
+static void mcall_set_reset_vec(uint64_t addr)
+{
+	int i;
+	uint32_t cpu_nums;
+
+	cpu_nums = sbi_platform_thishart_ptr()->hart_count;
+
+	uint32_t addr_lo = (uint32_t)addr;
+	uint32_t addr_hi = (uint32_t)(addr >> 32);
+	for (i = 0; i < cpu_nums; i++) {
+		writel(addr_lo, (void *)smu.addr +  SMU_HARTn_RESET_VEC_LO(i));
+		writel(addr_hi, (void *)smu.addr +  SMU_HARTn_RESET_VEC_HI(i));
+	}
+}
+
+static void __noreturn mcall_restart(void)
+{
+	mcall_set_reset_vec(FLASH_BASE);
+
+	writew(ATCWDT200_WP_NUM, (void *)(wdt.addr + WREN_OFF));
+	writel(INT_CLK_32768 | INT_EN | RST_CLK_128 | RST_EN | WDT_EN,
+			(void *)(wdt.addr + CTRL_OFF));
+
+	sbi_hart_hang();
+	__builtin_unreachable();
+}
 /* Platform final initialization. */
 static int ae350_final_init(bool cold_boot)
 {
@@ -119,42 +145,6 @@ static uintptr_t mcall_suspend_backup(void)
 {
 	cpu_suspend2ram();
 	return 0;
-}
-
-static void mcall_restart(unsigned int cpu_num)
-{
-	int i;
-	unsigned int *dev_ptr;			/* smu reset vector register is 32 bit */
-	unsigned char *cmd;				/* smu reset cmd register is 8 bit */
-
-
-	for (i = 0; i < cpu_num; i++) {
-		dev_ptr = (unsigned int *)((unsigned long)SMU_BASE + SMU_RESET_VEC_OFF
-			+ SMU_RESET_VEC_PER_CORE * i);
-		*dev_ptr = DRAM_BASE;
-	}
-
-	dev_ptr = (unsigned int *)((unsigned long)SMU_BASE + SMUCR_OFF);
-	cmd = (unsigned char *)dev_ptr;
-	*cmd = SMUCR_RESET;
-
-	asm volatile("ebreak");			/* should not enter here */
-	__builtin_unreachable();
-}
-
-extern void cpu_resume(void);
-static void mcall_set_reset_vec(int cpu_nums)
-{
-	int i;
-	unsigned int *dev_ptr;
-	unsigned int *tmp = (unsigned int *)&cpu_resume;
-
-	for (i = 0; i < cpu_nums; i++) {
-		dev_ptr = (unsigned int *)((unsigned long)SMU_BASE + SMU_RESET_VEC_OFF
-			+ SMU_RESET_VEC_PER_CORE*i);
-
-	*dev_ptr = (unsigned long)tmp;
-	}
 }
 
 /* Initialize the platform console. */
@@ -334,7 +324,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		ae350_set_suspend_mode(regs->a0);
 		break;
 	case SBI_EXT_ANDES_RESTART:
-		mcall_restart(regs->a0);
+		mcall_restart();
 		break;
 	case SBI_EXT_ANDES_RESET_VEC:
 		mcall_set_reset_vec(regs->a0);

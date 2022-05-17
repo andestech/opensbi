@@ -23,12 +23,14 @@
 #define POP(which)  LOAD which, 0(sp); addi sp, sp, REGBYTES
 #define POP_CSR(csr)  LOAD t0, 0(sp); addi sp, sp, REGBYTES; csrw csr, t0
 
-#define DRAM_BASE		0x80000000
-#define SMU_BASE		0xf0100000
+#define FLASH_BASE		0x80000000
+#define SMU_BASE		0xf0100000 // [TODO] get from fdt
 #define SMUCR_OFF		0x14
 #define SMUCR_RESET		0x3c
-#define SMU_RESET_VEC_OFF		0x50
-#define SMU_RESET_VEC_PER_CORE  0x4
+#define SMU_RESET_VEC_LO_OFF		0x50
+#define SMU_RESET_VEC_HI_OFF		0x60
+#define SMU_HARTn_RESET_VEC_LO(n) (SMU_RESET_VEC_LO_OFF + (n * 0x4))
+#define SMU_HARTn_RESET_VEC_HI(n) (SMU_RESET_VEC_HI_OFF + (n * 0x4))
 #define PCS_RESET           0x1
 
 #define MAX_PCS_SLOT    7
@@ -50,7 +52,7 @@
 #define PCSm_WE_OFF(hartid)  (PCS0_WE_OFF + 0x20 * (hartid + 3))
 
 
-#define PCSN_WE_OFF(n)          n * 0x20 + PCS0_WE_OFF
+#define PCSn_WE_OFF(n)          n * 0x20 + PCS0_WE_OFF
 #define CN_PCS_STATUS_OFF(n)    (n + 3) * 0x20 + PCS0_STATUS_OFF
 #define PCS0_CTL_OFF    0x94
 #define PCSm_CTL_OFF(hartid) (PCS0_CTL_OFF + 0x20 * (hartid + 3))
