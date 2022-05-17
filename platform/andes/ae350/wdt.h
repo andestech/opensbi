@@ -27,4 +27,8 @@
 #define CLK_PCLK		(1 << 1)
 #define WDT_EN			(1 << 0)
 
+struct wdt_data {
+	unsigned long addr;
+};
+
 #endif /* _AE350_WDT_H */

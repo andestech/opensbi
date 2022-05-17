@@ -10,10 +10,12 @@
 
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_encoding.h>
+#include <sbi/riscv_io.h>
 #include <sbi/sbi_console.h>
-#include <sbi/sbi_const.h>
+#include <sbi/sbi_hart.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_platform.h>
+#include <sbi/sbi_system.h>
 #include <sbi/sbi_trap.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
@@ -26,12 +28,16 @@
 #include "cache.h"
 #include "trigger.h"
 #include "smu.h"
+#include "wdt.h"
 #include "pma.h"
 
 static struct plic_data plic = {
 	.addr = AE350_PLIC_ADDR,
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
+static struct smu_data smu;
+static struct wdt_data wdt;
+
 extern int ae350_suspend_mode;
 extern struct sbi_platform platform;
 
@@ -88,6 +94,66 @@ static void __noreturn mcall_restart(void)
 	sbi_hart_hang();
 	__builtin_unreachable();
 }
+
+static int ae350_system_reset_check(u32 type, u32 reason)
+{
+	switch (type) {
+	case SBI_SRST_RESET_TYPE_SHUTDOWN:
+		return 1;
+	case SBI_SRST_RESET_TYPE_COLD_REBOOT:
+		return 255;
+	case SBI_SRST_RESET_TYPE_WARM_REBOOT:
+	default:
+		return 0; /* Unsupported */
+	}
+}
+
+static void ae350_system_reset(u32 type, u32 reason)
+{
+	switch (type) {
+	case SBI_SRST_RESET_TYPE_SHUTDOWN:
+		sbi_hart_hang();
+	case SBI_SRST_RESET_TYPE_COLD_REBOOT:
+		mcall_restart();
+	case SBI_SRST_RESET_TYPE_WARM_REBOOT:
+	default:
+		sbi_printf("Unsupported reset type : %d\n", type);
+		sbi_hart_hang();
+	}
+}
+
+static struct sbi_system_reset_device ae350_reset = {
+	.name = "ae350_wdt",
+	.system_reset_check = ae350_system_reset_check,
+	.system_reset = ae350_system_reset
+};
+
+static int ae350_system_reset_devices_init(void){
+	void *fdt;
+
+	fdt = fdt_get_address();
+
+	/* Rebooting requires smu to set the reset vector for each hart */
+	if(fdt_parse_compat_addr(fdt, (uint64_t *)&smu.addr, "andestech,atcsmu") ||
+			fdt_parse_compat_addr(fdt, (uint64_t *)&wdt.addr, "andestech,atcwdt200"))
+		return SBI_ENODEV;
+
+	return 0;
+}
+
+static int ae350_early_init(bool cold_boot)
+{
+	int rc;
+
+	if (cold_boot) {
+		rc = ae350_system_reset_devices_init();
+		if(!rc)
+			sbi_system_reset_add_device(&ae350_reset);
+	}
+
+	return 0;
+}
+
 /* Platform final initialization. */
 static int ae350_final_init(bool cold_boot)
 {
@@ -350,6 +416,8 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 
 /* Platform descriptor. */
 const struct sbi_platform_operations platform_ops = {
+	.early_init = ae350_early_init,
+
 	.final_init = ae350_final_init,
 
 	.console_init = ae350_console_init,
