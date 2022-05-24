@@ -50,15 +50,14 @@ static inline void plic_sw_pending(u32 target_hart)
 	 * -----------------------------------------------
 	 * | bit 7 | bit 6 | bit 5 | bit 4 | ... | bit 0 |
 	 * -----------------------------------------------
-	 * The bit 7 is used to send IPI to hart 0
-	 * The bit 6 is used to send IPI to hart 1
-	 * The bit 5 is used to send IPI to hart 2
-	 * The bit 4 is used to send IPI to hart 3
+	 * The bit 0 is used to send IPI to hart 0
+	 * The bit 1 is used to send IPI to hart 1
+	 * The bit 2 is used to send IPI to hart 2
+	 * The bit 3 is used to send IPI to hart 3
 	 */
 	u32 source_hart = current_hartid();
-	u32 target_offset = (PLICSW_PENDING_PER_HART - 1) - target_hart;
 	u32 per_hart_offset = PLICSW_PENDING_PER_HART * source_hart;
-	u32 val = 1 << target_offset << per_hart_offset;
+	u32 val = 1 << target_hart << per_hart_offset;
 
 	writel(val, plicsw_dev[source_hart].plicsw_pending);
 }
@@ -111,8 +110,9 @@ int plicsw_cold_ipi_init(unsigned long base, u32 hart_count)
 	for (int i = 0; i < hart_count; i++) {
 		uint32_t *enable = (void *)base + PLICSW_ENABLE_BASE
 			+ PLICSW_ENABLE_PER_HART * i;
-		writel(enable_mask, &enable[0]);
-		enable_mask >>= 1;
+		writel(enable_mask, enable);
+		writel(enable_mask, enable+1);
+		enable_mask <<= 1;
 	}
 
 	/* Figure-out PLICSW IPI register address */

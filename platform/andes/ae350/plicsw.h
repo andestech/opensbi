@@ -23,7 +23,7 @@
 #define PLICSW_CONTEXT_PER_HART		0x1000
 #define PLICSW_CONTEXT_CLAIM		0x4
 
-#define PLICSW_HART_MASK		0x80808080
+#define PLICSW_HART_MASK		0x01010101
 
 struct plicsw {
 	u32 source_id;
