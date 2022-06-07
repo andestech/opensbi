@@ -203,6 +203,8 @@
 
 #ifndef __ASSEMBLER__
 extern int ae350_suspend_mode[];
+extern struct sbi_ipi_device plicsw_ipi;
+
 int ae350_enter_suspend_mode(int suspend_mode, bool main_core,
 				unsigned int wake_mask, int num_cpus);
 

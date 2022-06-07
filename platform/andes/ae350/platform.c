@@ -238,7 +238,7 @@ static int ae350_irqchip_init(bool cold_boot)
 	return plic_warm_irqchip_init(&plic, 2 * hartid, 2 * hartid + 1);
 }
 
-static struct sbi_ipi_device plicsw_ipi = {
+struct sbi_ipi_device plicsw_ipi = {
 	.name = "ae350_plicsw",
 	.ipi_send = plicsw_ipi_send,
 	.ipi_clear = plicsw_ipi_clear

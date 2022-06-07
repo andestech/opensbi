@@ -135,7 +135,7 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 	csr_write(CSR_MIE, saved_mie);
 
 	/* Clear current HART IPI */
-	sbi_platform_ipi_clear(plat, hartid);
+	plicsw_ipi.ipi_clear(hartid);
 }
 
 const struct sbi_hsm_device *sbi_hsm_get_device(void)
