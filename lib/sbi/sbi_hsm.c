@@ -110,7 +110,6 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 {
 	unsigned long saved_mie;
-	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
 	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
 							    hart_data_offset);
 
@@ -128,7 +127,7 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 	csr_set(CSR_MIE, MIP_MSIP);
 
 	/* Wait for hart_add call*/
-	while (atomic_read(&hdata->state) != SBI_HART_STARTING) {
+	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
 		wfi();
 	};
 
@@ -269,9 +268,9 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch,
 
 	if (ae350_suspend_mode[hartid] == CpuHotplugDeepSleepMode) {
 		volatile uint32_t *PCSn_PCS_CTL =
-			(void *)((unsigned long)SMU_BASE + CN_PCS_CTL_OFF(hartid));
+			(void *)((unsigned long)SMU_BASE + PCSm_CTL_OFF(hartid));
 		volatile uint32_t *PCSn_PCS_STATUS =
-			(void *)((unsigned long)SMU_BASE + CN_PCS_STATUS_OFF(hartid));
+			(void *)((unsigned long)SMU_BASE + PCSm_STATUS_OFF(hartid));
 
 		// wakeup core n
 		*PCSn_PCS_CTL = 0x8;

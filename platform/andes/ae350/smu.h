@@ -48,9 +48,9 @@
  * PCS3 --> Power domain for Core0 and L2C.
  * PCSN --> Power domain for Core (N-3)
  */
-#define PCSm_WE_OFF(n)        ((m + 3) * 0x20 + PCS0_WE_OFF)
-#define PCSm_STATUS_OFF(n)    ((m + 3) * 0x20 + PCS0_STATUS_OFF)
-#define PCSm_CTL_OFF(n)       ((m + 3) * 0x20 + PCS0_CTL_OFF)
+#define PCSm_WE_OFF(i)        ((i + 3) * 0x20 + PCS0_WE_OFF)
+#define PCSm_STATUS_OFF(i)    ((i + 3) * 0x20 + PCS0_STATUS_OFF)
+#define PCSm_CTL_OFF(i)       ((i + 3) * 0x20 + PCS0_CTL_OFF)
 
 // PD* mask
 #define PD_TYPE_MASK        0x7

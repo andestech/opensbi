@@ -38,7 +38,6 @@ static struct plic_data plic = {
 static struct smu_data smu;
 static struct wdt_data wdt;
 
-extern int ae350_suspend_mode;
 extern struct sbi_platform platform;
 int has_l2;
 
