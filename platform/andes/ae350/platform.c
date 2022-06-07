@@ -421,7 +421,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		ae350_set_suspend_mode(regs->a0);
 		break;
 	case SBI_EXT_ANDES_ENTER_SUSPEND_MODE:
-		ae350_enter_suspend_mode(args[0], args[1], args[2], args[3]);
+		ae350_enter_suspend_mode(regs->a0, regs->a1, regs->a2, regs->a3);
 		break;
 	case SBI_EXT_ANDES_RESTART:
 		mcall_restart();
