@@ -2,10 +2,9 @@
 #include "smu.h"
 #include "platform.h"
 
-.text
-.global cpu_suspend2ram
-.global cpu_resume
-
+	.section .text, "ax", %progbits
+	.align 3
+	.global cpu_suspend2ram
 cpu_suspend2ram:
 
 	# backup cpu register
@@ -157,7 +156,7 @@ store_sp:
 	# need to get ae350_suspend_mode[n] to $a4 before CM is disabled
 	# $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
 	csrr  t1, CSR_MHARTID
-	srli  t1, t1, 0x2
+	slli  t1, t1, 0x2
 	la	  t0, ae350_suspend_mode
 	add	  t0, t0, t1
 	lw	  a4, 0(t0)
@@ -170,36 +169,38 @@ disable_I_D_cache:
 	csrrc	t0, CSR_MCACHE_CTL, 0x2
 	csrrc	t0, CSR_MCACHE_CTL, 0x1
 
-    # disable CM (DC_COHEN)
 disable_CM:
-    csrr  t1, CSR_MCACHE_CTL
-    lui   t2, 0xfff80
-    addi  t2, t2, -1
-    and   t1, t1, t2
-    csrw  CSR_MCACHE_CTL, t1
+	# disable CM (DC_COHEN)
+	csrr  t1, CSR_MCACHE_CTL
+	lui   t2, 0xfff80
+	addi  t2, t2, -1
+	and   t1, t1, t2
+	csrw  CSR_MCACHE_CTL, t1
 
 wait_for_DC_COHSTA_disable:
-    csrr   t1, CSR_MCACHE_CTL
-    srli   t1, t1, 12
-    li     a5, 0x100
-    and    t1, t1, a5
-    bnez   t1, wait_for_DC_COHSTA_disable
+	csrr   t1, CSR_MCACHE_CTL
+	srli   t1, t1, 12
+	li     a5, 0x100
+	and    t1, t1, a5
+	bnez   t1, wait_for_DC_COHSTA_disable
 
 suspend_mode_check1:
 	# ae350_suspend_mode[n] == DeepSleepMode --> goto disable_L2()
-	li t1, 0x2
+	li t1, DeepSleepMode
 	beq a4, t1, disable_L2
 
 	# ae350_suspend_mode[n] == CpuHotplugDeepSleepMode --> skip disable_L2()
-	li t1, 0x3
+	li t1, CpuHotplugDeepSleepMode
 	beq a4, t1, goto_sleep
+
+	j sleep_hang
 
 disable_L2:
 	# check if l2 exist
-	la	t0, has_l2
-	lw	t1, 0(t0)
-	li	t0, 1
-	bne	t0, t1, goto_sleep
+	li t0, AE350_L2C_ADDR
+	lw t1, 0(t0)
+	li t0, -1
+	beq t0, t1, goto_sleep
 
 	# check if it is core 0
 	csrr	t1, CSR_MHARTID
@@ -231,25 +232,26 @@ poll_l2_idle:
 goto_sleep:
 	wfi
 
-test_sec:
-	j test_sec
+sleep_hang:
+	j sleep_hang
 
-.align 2
+	.section .text, "ax", %progbits
+	.align 3
+	.global cpu_resume
 cpu_resume:
 
-	# Check if it come from NMI, go resume if not.
+	# Check if it comes from NMI, go resume if not.
 	csrr	t0, CSR_MCAUSE
 	beqz	t0, go_resume
-cpu_hang:
-	j	cpu_hang
+	j	sleep_hang
 
 go_resume:
 enable_CM:
 	#enable CM (DC_COHEN)
-    csrr  t1, CSR_MCACHE_CTL
-    lui   t2, 0x80
-    or    t1, t1, t2
-    csrw  CSR_MCACHE_CTL, t1
+	csrr  t1, CSR_MCACHE_CTL
+	lui   t2, 0x80
+	or    t1, t1, t2
+	csrw  CSR_MCACHE_CTL, t1
 
 	# check DC_COHEN is enabled (25-series do not has CM)
 	csrr  t1, CSR_MCACHE_CTL
@@ -257,11 +259,11 @@ enable_CM:
 	bne   t1, t2, enable_I_D_cache
 
 wait_for_DC_COHSTA_is_enabled:
-    csrr  t1, CSR_MCACHE_CTL
-    srli  t1, t1, 12
-    li    a5, 0x100
-    and   t1, t1, a5
-    beqz  t1, wait_for_DC_COHSTA_is_enabled
+	csrr  t1, CSR_MCACHE_CTL
+	srli  t1, t1, 12
+	li    a5, 0x100
+	and   t1, t1, a5
+	beqz  t1, wait_for_DC_COHSTA_is_enabled
 
 enable_I_D_cache:
 	# enable d-cache & i-cache
@@ -272,24 +274,24 @@ suspend_mode_check2:
 	# load ae350_suspend_mode[n] to $a4
 	# $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
 	csrr  t1, CSR_MHARTID
-	srli  t1, t1, 0x2
+	slli  t1, t1, 0x2
 	la	  t0, ae350_suspend_mode
 	add	  t0, t0, t1
 	lw	  a4, 0(t0)
 
 	# check ae350_suspend_mode[n] == DeepSleepMode
-	li t1, 0x2
+	li t1, DeepSleepMode
 	beq a4, t1, enable_L2
 
 	# check ae350_suspend_mode[n] == CpuHotplugDeepSleepMode
-	li t1, 0x3
+	li t1, CpuHotplugDeepSleepMode
 	beq a4, t1, restore_sp
 
 enable_L2:
-	la	t0, has_l2
-	lw	t1, 0(t0)
-	li	t0, 1
-	bne	t0, t1, restore_sp
+	li t0, AE350_L2C_ADDR
+	lw t1, 0(t0)
+	li t0, -1
+	beq t0, t1, restore_sp
 
 	csrr    t0, CSR_MHARTID
 	bnez	t0, restore_sp

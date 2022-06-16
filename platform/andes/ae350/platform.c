@@ -39,7 +39,6 @@ static struct smu_data smu;
 static struct wdt_data wdt;
 
 extern struct sbi_platform platform;
-int has_l2;
 
 unsigned long fw_platform_init(unsigned long arg0, unsigned long arg1,
 				unsigned long arg2, unsigned long arg3,
