@@ -86,12 +86,12 @@ int get_pd_status(unsigned int cpu)
 
 void smu_check_pcs_status(int sleep_mode_status, int num_cpus)
 {
-	int ready_cnt = num_cpus - 1;
+	int active_cnt = num_cpus - 1;
 	int ready_cpu[AE350_HART_COUNT_MAX] = {0};
 	u32 hartid = current_hartid();
 	u32 cpu, status, type;
 
-	while (ready_cnt) {
+	while (active_cnt) {
 		for (cpu = 0; cpu < num_cpus; cpu++) {
 			if (cpu == hartid || ready_cpu[cpu] == 1)
 				continue;
@@ -100,7 +100,7 @@ void smu_check_pcs_status(int sleep_mode_status, int num_cpus)
 			status = get_pd_status(cpu);
 
 			if (type == SLEEP && status == sleep_mode_status) {
-				ready_cnt--;
+				active_cnt--;
 				ready_cpu[cpu] = 1;
 			}
 		}
