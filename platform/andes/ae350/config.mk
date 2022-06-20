@@ -15,6 +15,7 @@ platform-ldflags-y =
 
 # Blobs to build
 FW_TEXT_START=0x00000000
+FW_PIC=n
 
 FW_DYNAMIC=y
 
