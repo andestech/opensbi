@@ -115,9 +115,7 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 
 
 	if (ae350_suspend_mode[hartid] != 0) {
-		ae350_enter_suspend_mode(ae350_suspend_mode[hartid],
-					false, 1 << PCS_WAKE_MSIP_OFF, 0);
-		ae350_suspend_mode[hartid] = 0;
+		ae350_enter_suspend_mode(false, 1 << PCS_WAKE_MSIP_OFF);
 	}
 
 	/* Save MIE CSR */

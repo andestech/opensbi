@@ -12,7 +12,7 @@
 #include "smu.h"
 #include "platform.h"
 
-int ae350_suspend_mode[AE350_HART_COUNT_MAX] = {0};
+u32 ae350_suspend_mode[AE350_HART_COUNT_MAX] = {0};
 uintptr_t MIE_BACKUP[AE350_HART_COUNT_MAX] = {0};
 uintptr_t SIE_BACKUP[AE350_HART_COUNT_MAX] = {0};
 void smu_suspend_prepare(int main_core, int enable)

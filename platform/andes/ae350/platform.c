@@ -284,7 +284,7 @@ static int ae350_timer_init(bool cold_boot)
  *	2. cpu_stop() -> sbi_hsm_hart_stop() -> sbi_hsm_exit() ->
  *		jump_warmboot() -> sbi_hsm_hart_wait() -> ae350_enter_suspend_mode() -> normal/light/deep
  */
-int ae350_set_suspend_mode(int suspend_mode)
+static int ae350_set_suspend_mode(u32 suspend_mode)
 {
 	u32 hartid = current_hartid();
 
@@ -292,10 +292,14 @@ int ae350_set_suspend_mode(int suspend_mode)
 	return 0;
 }
 
-int ae350_enter_suspend_mode(int suspend_mode, int main_core,
-				unsigned int wake_mask, int num_cpus)
+int ae350_enter_suspend_mode(int main_core, unsigned int wake_mask)
 {
-	u32 hartid = current_hartid();
+	u32 hartid, cpu_nums, suspend_mode;
+
+	hartid = current_hartid();
+	cpu_nums = sbi_platform_thishart_ptr()->hart_count;
+
+	suspend_mode = ae350_suspend_mode[hartid];
 
 	// smu function
 	if (suspend_mode == LightSleepMode) {
@@ -309,7 +313,7 @@ int ae350_enter_suspend_mode(int suspend_mode, int main_core,
 		smu_set_sleep(hartid, LightSleep_CTL);
 		// Wait for other cores to enter sleeping mode
 		if (main_core)
-			smu_check_pcs_status(LightSleep_STATUS, num_cpus);
+			smu_check_pcs_status(LightSleep_STATUS, cpu_nums);
 		// D-cache disable
 		mcall_dcache_op(0);
 		// wait for interrupt
@@ -329,7 +333,7 @@ int ae350_enter_suspend_mode(int suspend_mode, int main_core,
 		smu_set_sleep(hartid, DeepSleep_CTL);
 		// Wait for other cores to enter sleeping mode
 		if (main_core)
-			smu_check_pcs_status(DeepSleep_STATUS, num_cpus);
+			smu_check_pcs_status(DeepSleep_STATUS, cpu_nums);
 		// stop & wfi & resume
 		cpu_suspend2ram();
 		// enable privilege
@@ -357,7 +361,14 @@ int ae350_enter_suspend_mode(int suspend_mode, int main_core,
 			// enable privilege
 			smu_suspend_prepare(-1, true);
 		}
+	} else {
+		sbi_printf("%s(): CPU[%d] Unsupported ae350 suspend mode\n",
+				__func__, hartid);
+		sbi_hart_hang();
 	}
+
+	// reset suspend mode to NormalMode (active)
+	ae350_suspend_mode[hartid] = NormalMode;
 
 	return 0;
 }
@@ -421,7 +432,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		ae350_set_suspend_mode(regs->a0);
 		break;
 	case SBI_EXT_ANDES_ENTER_SUSPEND_MODE:
-		ae350_enter_suspend_mode(regs->a0, regs->a1, regs->a2, regs->a3);
+		ae350_enter_suspend_mode(regs->a0, regs->a1);
 		break;
 	case SBI_EXT_ANDES_RESTART:
 		mcall_restart();
