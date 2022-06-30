@@ -92,9 +92,9 @@ struct smu_data {
 	unsigned long addr;
 };
 
-void smu_suspend_prepare(int main_core, int enable);
+void smu_suspend_prepare(int main_core, bool enable);
 void smu_set_sleep(int cpu, unsigned char sleep);
-void smu_set_wakeup_enable(int cpu, int main_core, unsigned int events);
+void smu_set_wakeup_enable(int cpu, bool main_core, unsigned int events);
 int get_pd_type(unsigned int cpu);
 int get_pd_status(unsigned int cpu);
 void smu_check_pcs_status(int sleep_mode_status, int num_cpus);

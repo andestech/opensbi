@@ -37,6 +37,7 @@ static struct plic_data plic = {
 };
 static struct smu_data smu;
 static struct wdt_data wdt;
+struct l2c_data l2c;
 
 extern struct sbi_platform platform;
 
@@ -140,6 +141,22 @@ static int ae350_system_reset_devices_init(void){
 	return 0;
 }
 
+static int ae350_hsm_init(void) {
+	void *fdt;
+
+	fdt = fdt_get_address();
+
+	/*
+	 * No need to parse smu address, ae350_[set|enter]_suspend_mode can't be
+	 * used if ATCSMU is not configured in kernel.
+	 * If L2C address is 0, cpu suspend/resume will skip L2C disabling/enabling
+	 */
+	if(fdt_parse_compat_addr(fdt, (uint64_t *)&l2c.addr, "cache"))
+		l2c.addr = 0;
+
+	return 0;
+}
+
 static int ae350_early_init(bool cold_boot)
 {
 	int rc;
@@ -148,6 +165,7 @@ static int ae350_early_init(bool cold_boot)
 		rc = ae350_system_reset_devices_init();
 		if(!rc)
 			sbi_system_reset_add_device(&ae350_reset);
+		ae350_hsm_init();
 	}
 
 	return 0;
@@ -292,7 +310,7 @@ static int ae350_set_suspend_mode(u32 suspend_mode)
 	return 0;
 }
 
-int ae350_enter_suspend_mode(int main_core, unsigned int wake_mask)
+int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 {
 	u32 hartid, cpu_nums, suspend_mode;
 

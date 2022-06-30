@@ -21,8 +21,6 @@
 #define AE350_PLMT_ADDR         0xe6000000
 #define AE350_PLMT_FREQ         60000000
 
-#define AE350_L2C_ADDR          0xe0500000
-
 #define AE350_UART_ADDR_OFFSET      0x20
 #define AE350_UART_ADDR         (0xf0300000 + AE350_UART_ADDR_OFFSET)
 #define AE350_UART_FREQUENCY        19660800
@@ -285,6 +283,10 @@
 #ifndef __ASSEMBLER__
 extern u32 ae350_suspend_mode[];
 extern struct sbi_ipi_device plicsw_ipi;
+
+struct l2c_data {
+	unsigned long addr;
+};
 
 int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask);
 static inline __attribute__((always_inline)) bool is_andestar45_series(void)

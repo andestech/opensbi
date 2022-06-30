@@ -15,7 +15,7 @@
 u32 ae350_suspend_mode[AE350_HART_COUNT_MAX] = {0};
 uintptr_t MIE_BACKUP[AE350_HART_COUNT_MAX] = {0};
 uintptr_t SIE_BACKUP[AE350_HART_COUNT_MAX] = {0};
-void smu_suspend_prepare(int main_core, int enable)
+void smu_suspend_prepare(int main_core, bool enable)
 {
 	u32 hartid = current_hartid();
 
@@ -57,7 +57,7 @@ void smu_set_sleep(int cpu, unsigned char sleep)
 	writel(smu_val, smu_pcs_ctl_base);
 }
 
-void smu_set_wakeup_enable(int cpu, int main_core, unsigned int events)
+void smu_set_wakeup_enable(int cpu, bool main_core, unsigned int events)
 {
 	volatile void *smu_we_base = (void *)((unsigned long)SMU_BASE + PCSm_WE_OFF(cpu));
 	if (main_core)

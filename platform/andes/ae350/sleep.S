@@ -1,4 +1,5 @@
 #include <sbi/riscv_encoding.h>
+#include <sbi/riscv_asm.h>
 #include "smu.h"
 #include "platform.h"
 
@@ -161,6 +162,11 @@ store_sp:
 	add	  t0, t0, t1
 	lw	  a4, 0(t0)
 
+	# read l2c address parsed from fdt before CM is disabled
+	# $t4 = l2c.addr
+	la t4, l2c
+	REG_L t4, 0(t4)
+
 disable_I_D_cache:
 	# flush dcache
 	csrw	CSR_UCCTLCOMMAND, 0x6
@@ -197,17 +203,14 @@ suspend_mode_check1:
 
 disable_L2:
 	# check if l2 exist
-	li t0, AE350_L2C_ADDR
-	lw t1, 0(t0)
-	li t0, -1
-	beq t0, t1, goto_sleep
+	beq x0, t4, goto_sleep
 
 	# check if it is core 0
 	csrr	t1, CSR_MHARTID
 	bnez	t1, goto_sleep
 
 	# flush and disable l2 by core 0
-	li	t0, 0xe0500000
+	mv	t0, t4
 	li	t2, 0x10
 	mul	t1, t1, t2
 	add	t1, t1, 0x40
@@ -217,17 +220,15 @@ disable_L2:
 
 poll_l2_idle:
 	# Polling L2 idle status for core0
-	li	t0, 0xe0500080
-	lw	t1, 0(t0)
+	lw	t1, 0x80(t4)
 	andi	t1, t1, 0xf
 	bnez	t1, poll_l2_idle
 
 	# disable L2
-	li	t0, 0xe0500008
-	lw	t1, 0(t0)
+	lw	t1, 0x8(t4)
 	srli	t1, t1, 1
 	slli	t1, t1, 1
-	sw	t1, 0(t0)
+	sw	t1, 0x8(t4)
 
 goto_sleep:
 	wfi
@@ -247,13 +248,13 @@ cpu_resume:
 
 go_resume:
 enable_CM:
-	#enable CM (DC_COHEN)
+	# enable CM (DC_COHEN)
 	csrr  t1, CSR_MCACHE_CTL
 	lui   t2, 0x80
 	or    t1, t1, t2
 	csrw  CSR_MCACHE_CTL, t1
 
-	# check DC_COHEN is enabled (25-series do not has CM)
+	# check DC_COHEN is enabled (25-series does not have CM)
 	csrr  t1, CSR_MCACHE_CTL
 	lui   t2, 0x80
 	bne   t1, t2, enable_I_D_cache
@@ -287,20 +288,20 @@ suspend_mode_check2:
 	li t1, CpuHotplugDeepSleepMode
 	beq a4, t1, restore_sp
 
+	j sleep_hang
+
 enable_L2:
-	li t0, AE350_L2C_ADDR
-	lw t1, 0(t0)
-	li t0, -1
-	beq t0, t1, restore_sp
+	la t4, l2c
+	REG_L t4, 0(t4)
+	beq x0, t4, restore_sp
 
 	csrr    t0, CSR_MHARTID
 	bnez	t0, restore_sp
 
 	# enable L2
-	li	t0, 0xe0500008
-	lw	t1, 0(t0)
+	lw	t1, 0x8(t4)
 	ori	t1, t1, 0x1
-	sw	t1, 0(t0)
+	sw	t1, 0x8(t4)
 
 restore_sp:
 	# load sp
