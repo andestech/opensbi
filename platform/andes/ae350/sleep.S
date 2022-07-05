@@ -140,6 +140,11 @@ store_sp:
 	csrr	t1, CSR_MHARTID
 	mul	t0, t0, t1
 	addi	t0, t0, 0x50
+eight_core:
+	li	t1, 0x60
+	blt	t0, t1, set_rst_vec
+	addi	t0, t0, 0x1a0
+set_rst_vec:
 	la	t1, smu
 	REG_L	t1, 0(t1)
 	add	t0, t0, t1
