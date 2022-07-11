@@ -24,7 +24,6 @@
 #define POP_CSR(csr)  LOAD t0, 0(sp); addi sp, sp, REGBYTES; csrw csr, t0
 
 #define FLASH_BASE		0x80000000
-#define SMU_BASE		0xf0100000 // [TODO] get from fdt
 #define SMUCR_OFF		0x14
 #define SMUCR_RESET		0x3c
 #define SMU_RESET_VEC_LO_OFF		0x50

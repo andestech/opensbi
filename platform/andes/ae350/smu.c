@@ -12,9 +12,12 @@
 #include "smu.h"
 #include "platform.h"
 
+struct smu_data smu;
+
 u32 ae350_suspend_mode[AE350_HART_COUNT_MAX] = {0};
 uintptr_t MIE_BACKUP[AE350_HART_COUNT_MAX] = {0};
 uintptr_t SIE_BACKUP[AE350_HART_COUNT_MAX] = {0};
+
 void smu_suspend_prepare(int main_core, bool enable)
 {
 	u32 hartid = current_hartid();
@@ -45,7 +48,7 @@ void smu_suspend_prepare(int main_core, bool enable)
 
 void smu_set_sleep(int cpu, unsigned char sleep)
 {
-	volatile void *smu_pcs_ctl_base = (void *)((unsigned long)SMU_BASE + PCSm_CTL_OFF(cpu));
+	volatile void *smu_pcs_ctl_base = (void *)(smu.addr + PCSm_CTL_OFF(cpu));
 	unsigned long smu_val = readl(smu_pcs_ctl_base);
 	unsigned char *ctl = (unsigned char *)&smu_val;
 
@@ -59,7 +62,7 @@ void smu_set_sleep(int cpu, unsigned char sleep)
 
 void smu_set_wakeup_enable(int cpu, bool main_core, unsigned int events)
 {
-	volatile void *smu_we_base = (void *)((unsigned long)SMU_BASE + PCSm_WE_OFF(cpu));
+	volatile void *smu_we_base = (void *)(smu.addr + PCSm_WE_OFF(cpu));
 	if (main_core)
 		events |= (1 << PCS_WAKE_DBG_OFF);
 
@@ -69,7 +72,7 @@ void smu_set_wakeup_enable(int cpu, bool main_core, unsigned int events)
 int get_pd_type(unsigned int cpu)
 {
 	volatile void *smu_pcs_status_base =
-		(void *)((unsigned long)SMU_BASE + PCSm_STATUS_OFF(cpu));
+		(void *)(smu.addr + PCSm_STATUS_OFF(cpu));
 	unsigned long smu_pcs_status_val = readl(smu_pcs_status_base);
 
 	return GET_PD_TYPE(smu_pcs_status_val);
@@ -78,7 +81,7 @@ int get_pd_type(unsigned int cpu)
 int get_pd_status(unsigned int cpu)
 {
 	volatile void *smu_pcs_status_base =
-		(void *)((unsigned long)SMU_BASE + PCSm_STATUS_OFF(cpu));
+		(void *)(smu.addr + PCSm_STATUS_OFF(cpu));
 		unsigned long smu_pcs_status_val = readl(smu_pcs_status_base);
 
 	return GET_PD_STATUS(smu_pcs_status_val);

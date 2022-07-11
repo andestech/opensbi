@@ -30,6 +30,7 @@
 
 static const struct sbi_hsm_device *hsm_dev = NULL;
 static unsigned long hart_data_offset;
+extern struct smu_data smu;
 
 /** Per hart specific data to manage state transition **/
 struct sbi_hsm_data {
@@ -264,11 +265,11 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch,
 					  SBI_DOMAIN_EXECUTE))
 		return SBI_EINVALID_ADDR;
 
-	if (ae350_suspend_mode[hartid] == CpuHotplugDeepSleepMode) {
+	if (smu.addr && ae350_suspend_mode[hartid] == CpuHotplugDeepSleepMode) {
 		volatile uint32_t *PCSn_PCS_CTL =
-			(void *)((unsigned long)SMU_BASE + PCSm_CTL_OFF(hartid));
+			(void *)(smu.addr + PCSm_CTL_OFF(hartid));
 		volatile uint32_t *PCSn_PCS_STATUS =
-			(void *)((unsigned long)SMU_BASE + PCSm_STATUS_OFF(hartid));
+			(void *)(smu.addr + PCSm_STATUS_OFF(hartid));
 
 		// wakeup core n
 		*PCSn_PCS_CTL = 0x8;

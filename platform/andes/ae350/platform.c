@@ -35,7 +35,7 @@ static struct plic_data plic = {
 	.addr = AE350_PLIC_ADDR,
 	.num_src = AE350_PLIC_NUM_SOURCES,
 };
-static struct smu_data smu;
+extern struct smu_data smu;
 static struct wdt_data wdt;
 struct l2c_data l2c;
 
@@ -128,33 +128,33 @@ static struct sbi_system_reset_device ae350_reset = {
 	.system_reset = ae350_system_reset
 };
 
-static int ae350_system_reset_devices_init(void){
+static int ae350_system_reset_devices_init(void)
+{
 	void *fdt;
 
 	fdt = fdt_get_address();
 
 	/* Rebooting requires smu to set the reset vector for each hart */
-	if(fdt_parse_compat_addr(fdt, (uint64_t *)&smu.addr, "andestech,atcsmu") ||
-			fdt_parse_compat_addr(fdt, (uint64_t *)&wdt.addr, "andestech,atcwdt200"))
+	if (fdt_parse_compat_addr(fdt, (uint64_t *)&smu.addr, "andestech,atcsmu") ||
+	    fdt_parse_compat_addr(fdt, (uint64_t *)&wdt.addr, "andestech,atcwdt200"))
 		return SBI_ENODEV;
 
 	return 0;
 }
 
-static int ae350_hsm_init(void) {
+static void ae350_hsm_init(void)
+{
 	void *fdt;
 
 	fdt = fdt_get_address();
 
-	/*
-	 * No need to parse smu address, ae350_[set|enter]_suspend_mode can't be
-	 * used if ATCSMU is not configured in kernel.
-	 * If L2C address is 0, cpu suspend/resume will skip L2C disabling/enabling
-	 */
-	if(fdt_parse_compat_addr(fdt, (uint64_t *)&l2c.addr, "cache"))
-		l2c.addr = 0;
+	if (fdt_parse_compat_addr(fdt, (uint64_t *)&smu.addr,
+				"andestech,atcsmu"))
+		smu.addr = 0;
 
-	return 0;
+	if (fdt_parse_compat_addr(fdt, (uint64_t *)&l2c.addr,
+				"cache"))
+		l2c.addr = 0;
 }
 
 static int ae350_early_init(bool cold_boot)
@@ -163,8 +163,9 @@ static int ae350_early_init(bool cold_boot)
 
 	if (cold_boot) {
 		rc = ae350_system_reset_devices_init();
-		if(!rc)
+		if (!rc)
 			sbi_system_reset_add_device(&ae350_reset);
+
 		ae350_hsm_init();
 	}
 
@@ -319,8 +320,26 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 
 	suspend_mode = ae350_suspend_mode[hartid];
 
-	// smu function
-	if (suspend_mode == LightSleepMode) {
+	if (!smu.addr) {
+		switch (suspend_mode) {
+		case LightSleepMode:
+		case DeepSleepMode:
+			if(main_core)
+				sbi_printf("%s(): LightSleep and DeepSleep are not supported.\n",
+					__func__);
+		case CpuHotplugDeepSleepMode:
+			  /*
+			   * The hart skips deep sleep and waiting in
+			   * hsm start pending state.
+			   */
+		default:
+			goto go_resume;
+			break;
+		}
+	}
+
+	switch (suspend_mode) {
+	case LightSleepMode:
 		sbi_printf("%s(): CPU[%d] LightSleepMode\n", __func__, hartid);
 
 		// set SMU wakeup enable & MISC control
@@ -340,7 +359,8 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 		mcall_dcache_op(1);
 		// enable privilege
 		smu_suspend_prepare(main_core, true);
-	} else if (suspend_mode == DeepSleepMode) {
+		break;
+	case DeepSleepMode:
 		sbi_printf("%s(): CPU[%d] DeepSleepMode\n", __func__, hartid);
 
 		// set SMU wakeup enable & MISC control
@@ -356,7 +376,8 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 		cpu_suspend2ram();
 		// enable privilege
 		smu_suspend_prepare(main_core, true);
-	} else if (suspend_mode == CpuHotplugDeepSleepMode) {
+		break;
+	case CpuHotplugDeepSleepMode:
 		/*
 		 * In 25-series, core 0 is binding with L2 power domain,
 		 * core 0 should NOT enter deep sleep mode.
@@ -379,12 +400,14 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 			// enable privilege
 			smu_suspend_prepare(-1, true);
 		}
-	} else {
+		break;
+	default:
 		sbi_printf("%s(): CPU[%d] Unsupported ae350 suspend mode\n",
 				__func__, hartid);
 		sbi_hart_hang();
 	}
 
+go_resume:
 	// reset suspend mode to NormalMode (active)
 	ae350_suspend_mode[hartid] = NormalMode;
 

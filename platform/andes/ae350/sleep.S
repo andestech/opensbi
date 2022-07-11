@@ -130,7 +130,8 @@ store_sp:
 	add	t1, t1, t2
 	mul	t0, t0, t1
 	addi	t0, t0,	0x84
-	li	t1, SMU_BASE
+	la	t1, smu
+	REG_L	t1, 0(t1)
 	add	t0, t0,	t1
 	sw	sp, 0(t0)
 
@@ -139,7 +140,8 @@ store_sp:
 	csrr	t1, CSR_MHARTID
 	mul	t0, t0, t1
 	addi	t0, t0, 0x50
-	li	t1, SMU_BASE
+	la	t1, smu
+	REG_L	t1, 0(t1)
 	add	t0, t0, t1
 	la	t1, cpu_resume
 	sw	t1, 0(t0)
@@ -311,7 +313,8 @@ restore_sp:
 	add	t1, t1, t2
 	mul	t0, t0, t1
 	addi	t0, t0, 0x84
-	li	t1, SMU_BASE
+	la t1, smu
+	REG_L t1, 0(t1)
 	add	t0, t0, t1
 	lw	sp, 0(t0)
 
