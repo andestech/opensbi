@@ -129,9 +129,9 @@
  */
 
 /* MISC */
-#define IRQ_PFM         18
-#define MIP_MOVFIP      (1 << IRQ_PFM)
-#define MIP_SOVFIP      (1 << IRQ_PFM)
+#define IRQ_M_PMU	18
+#define MIP_MOVFIP      (1 << IRQ_M_PMU)
+#define MIP_SOVFIP      (1 << IRQ_M_PMU)
 
 /* nds v5 mmisc_ctl register*/
 #define V5_MMISC_CTL_VEC_PLIC_OFFSET            1

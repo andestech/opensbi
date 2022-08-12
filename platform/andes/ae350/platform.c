@@ -169,6 +169,15 @@ static int ae350_early_init(bool cold_boot)
 		ae350_hsm_init();
 	}
 
+	/* Machine counter write enable */
+	csr_write(CSR_MCOUNTERWEN, 0xfffffffd);
+	/* Supervisor local interrupt enable */
+	csr_write(CSR_SLIE, MIP_MOVFIP);
+	/* disable machine counter in M-mode */
+	csr_write(CSR_MCOUNTERMASK_M, 0xfffffffd);
+	/* delegate S-mode local interrupt to S-mode */
+	csr_write(CSR_MSLIDELEG, MIP_MOVFIP);
+
 	return 0;
 }
 
