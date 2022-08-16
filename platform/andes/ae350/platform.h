@@ -199,11 +199,6 @@
 #define V5_L2C_CTL_DRAMOCTL_MASK    (3UL << V5_L2C_CTL_DRAMOCTL_OFFSET)
 #define V5_L2C_CTL_DRAMICTL_MASK    (1UL << V5_L2C_CTL_DRAMICTL_OFFSET)
 
-/* MISC */
-#define IRQ_PFM         18
-#define MIP_MOVFIP      (1 << IRQ_PFM)
-#define MIP_SOVFIP      (1 << IRQ_PFM)
-
 /* nds v5 mmisc_ctl register*/
 #define V5_MMISC_CTL_VEC_PLIC_OFFSET            1
 #define V5_MMISC_CTL_RVCOMPM_OFFSET             2
