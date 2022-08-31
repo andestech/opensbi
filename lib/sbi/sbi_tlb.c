@@ -378,9 +378,11 @@ static int tlb_update(struct sbi_scratch *scratch,
 	 * upgrade it to flush all because we can only flush
 	 * 4KB at a time.
 	 */
-	if (tinfo->size > tlb_range_flush_limit) {
-		tinfo->start = 0;
-		tinfo->size = SBI_TLB_FLUSH_ALL;
+	if (tinfo->asid != SBI_CMO) {	/* sbi_tlb_info->asid == sbi_cache_info->extension */
+		if (tinfo->size > tlb_range_flush_limit) {
+			tinfo->start = 0;
+			tinfo->size = SBI_TLB_FLUSH_ALL;
+		}
 	}
 
 	/*
