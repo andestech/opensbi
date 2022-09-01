@@ -31,6 +31,11 @@
 #include "wdt.h"
 #include "pma.h"
 
+/* default to V0 memory map offset */
+unsigned long L2C_REG_PER_CORE_OFFSET = 0x10;
+unsigned long CCTL_L2_STATUS_PER_CORE_OFFSET = 0x4;
+unsigned long L2C_REG_STATUS_OFFSET = 0x0;
+
 static struct plic_data plic = {
 	.addr = AE350_PLIC_ADDR,
 	.num_src = AE350_PLIC_NUM_SOURCES,

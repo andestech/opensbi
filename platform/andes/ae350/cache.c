@@ -105,7 +105,8 @@ uintptr_t mcall_write_around(unsigned long enable)
 
 static uint32_t cpu_l2c_get_cctl_status(void)
 {
-	return readl((void*)(l2c.addr + L2C_REG_STATUS_OFFSET));
+	u32 hartid = current_hartid();
+	return readl((void*)(l2c.addr + L2C_REG_C0_STATUS_OFFSET + hartid * L2C_REG_STATUS_OFFSET));
 }
 
 void cpu_dcache_inval_line(unsigned long start, unsigned long last_hartid)
