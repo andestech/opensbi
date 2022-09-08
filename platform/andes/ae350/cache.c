@@ -115,7 +115,7 @@ void cpu_dcache_inval_line(unsigned long start, unsigned long last_hartid)
 
 	csr_write(CSR_UCCTLBEGINADDR, start);
 	csr_write(CSR_UCCTLCOMMAND, V5_UCCTL_L1D_VA_INVAL);
-	if (hartid == last_hartid) {
+	if (l2c.addr && (hartid == last_hartid)) {
 		writel(start, (void*)((void *)l2c.addr + L2C_REG_CN_ACC_OFFSET(hartid)));
 		writel(CCTL_L2_PA_INVAL, (void*)((void *)l2c.addr + L2C_REG_CN_CMD_OFFSET(hartid)));
 		while ((cpu_l2c_get_cctl_status() & CCTL_L2_STATUS_CN_MASK(hartid))
@@ -138,7 +138,7 @@ void cpu_dcache_wb_line(unsigned long start, unsigned long last_hartid)
 
 	csr_write(CSR_UCCTLBEGINADDR, start);
 	csr_write(CSR_UCCTLCOMMAND, V5_UCCTL_L1D_VA_WB);
-	if (hartid == last_hartid) {
+	if (l2c.addr && (hartid == last_hartid)) {
 		writel(start, (void*)((void *)l2c.addr + L2C_REG_CN_ACC_OFFSET(hartid)));
 		writel(CCTL_L2_PA_WB, (void*)((void *)l2c.addr + L2C_REG_CN_CMD_OFFSET(hartid)));
 		while ((cpu_l2c_get_cctl_status() & CCTL_L2_STATUS_CN_MASK(hartid))
@@ -152,7 +152,7 @@ void cpu_dcache_wbinval_all(unsigned long start, unsigned long last_hartid)
 
 	csr_write(CSR_UCCTLBEGINADDR, start);
 	csr_write(CSR_UCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
-	if (hartid == last_hartid) {
+	if (l2c.addr && (hartid == last_hartid)) {
 		writel(start, (void*)((void *)l2c.addr + L2C_REG_CN_ACC_OFFSET(hartid)));
 		writel(CCTL_L2_WBINVAL_ALL, (void*)((void *)l2c.addr + L2C_REG_CN_CMD_OFFSET(hartid)));
 		while ((cpu_l2c_get_cctl_status() & CCTL_L2_STATUS_CN_MASK(hartid))
