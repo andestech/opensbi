@@ -2,6 +2,7 @@
 #include <sbi/riscv_asm.h>
 #include "smu.h"
 #include "platform.h"
+#include "pma.h"
 
 	.section .text, "ax", %progbits
 	.align 3
@@ -71,9 +72,42 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_MCOUNTERMASK_S)
 	PUSH_CSR(CSR_MCOUNTERMASK_U)
 	PUSH_CSR(CSR_MCOUNTEROVF)
+	# Push cache setting
+	PUSH_CSR(CSR_MCACHE_CTL)
+
+	# check if PPMA exists
+	csrr	t0, CSR_MMSC_CFG
+	li	t1, 0x40000000	# 30th bit: PPMA
+	and	t0, t0, t1
+	beqz	t0, 1f
+#if __riscv_xlen == 64
+	PUSH_CSR(PMACFG_0)
+	PUSH_CSR(PMACFG_2)
+#else
+	PUSH_CSR(PMACFG_0)
+	PUSH_CSR(PMACFG_1)
+	PUSH_CSR(PMACFG_2)
+	PUSH_CSR(PMACFG_3)
+#endif
+	PUSH_CSR(PMAADDR_0)
+	PUSH_CSR(PMAADDR_1)
+	PUSH_CSR(PMAADDR_2)
+	PUSH_CSR(PMAADDR_3)
+	PUSH_CSR(PMAADDR_4)
+	PUSH_CSR(PMAADDR_5)
+	PUSH_CSR(PMAADDR_6)
+	PUSH_CSR(PMAADDR_7)
+	PUSH_CSR(PMAADDR_8)
+	PUSH_CSR(PMAADDR_9)
+	PUSH_CSR(PMAADDR_10)
+	PUSH_CSR(PMAADDR_11)
+	PUSH_CSR(PMAADDR_12)
+	PUSH_CSR(PMAADDR_13)
+	PUSH_CSR(PMAADDR_14)
+	PUSH_CSR(PMAADDR_15)
 
 	# Push RISC-V s-mode reg
-	PUSH_CSR(CSR_SSTATUS)
+1:	PUSH_CSR(CSR_SSTATUS)
 	PUSH_CSR(CSR_SIE)
 	PUSH_CSR(CSR_STVEC)
 	PUSH_CSR(CSR_SCOUNTEREN)
@@ -121,19 +155,6 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_PMPADDR13)
 	PUSH_CSR(CSR_PMPADDR14)
 	PUSH_CSR(CSR_PMPADDR15)
-
-store_sp:
-	# store sp to pcs scratch for each core
-	li	t0, 0x20
-	li	t1, 3
-	csrr	t2, CSR_MHARTID
-	add	t1, t1, t2
-	mul	t0, t0, t1
-	addi	t0, t0,	0x84
-	la	t1, smu
-	REG_L	t1, 0(t1)
-	add	t0, t0,	t1
-	sw	sp, 0(t0)
 
 	# store reset vector
 	li	t0, 0x4
@@ -216,7 +237,11 @@ disable_L2:
 	csrr	t1, CSR_MHARTID
 	bnez	t1, goto_sleep
 
-	# flush and disable l2 by core 0
+	# Save l2 setting, flush and disable l2 by core 0
+	mv	t0, t4
+	lw	t0, 8(t0)	# l2c base + 0x8: l2c control register offset
+	PUSH(t0)
+
 	mv	t0, t4
 	li	t2, 0x10
 	mul	t1, t1, t2
@@ -238,6 +263,19 @@ poll_l2_idle:
 	sw	t1, 0x8(t4)
 
 goto_sleep:
+store_sp:
+	# store sp to pcs scratch for each core
+	li	t0, 0x20
+	li	t1, 3
+	csrr	t2, CSR_MHARTID
+	add	t1, t1, t2
+	mul	t0, t0, t1
+	addi	t0, t0,	0x84
+	la	t1, smu
+	REG_L	t1, 0(t1)
+	add	t0, t0,	t1
+	sw	sp, 0(t0)
+
 	wfi
 
 sleep_hang:
@@ -278,6 +316,19 @@ enable_I_D_cache:
 	csrrs	t0, CSR_MCACHE_CTL, 0x1
 	csrrs	t0, CSR_MCACHE_CTL, 0x2
 
+restore_sp:
+	# load sp
+	li	t0, 0x20
+	li	t1, 3
+	csrr	t2, CSR_MHARTID
+	add	t1, t1, t2
+	mul	t0, t0, t1
+	addi	t0, t0, 0x84
+	la t1, smu
+	REG_L t1, 0(t1)
+	add	t0, t0, t1
+	lw	sp, 0(t0)
+
 suspend_mode_check2:
 	# load ae350_suspend_mode[n] to $a4
 	# $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
@@ -293,36 +344,23 @@ suspend_mode_check2:
 
 	# check ae350_suspend_mode[n] == CpuHotplugDeepSleepMode
 	li t1, CpuHotplugDeepSleepMode
-	beq a4, t1, restore_sp
+	beq a4, t1, restore_regs
 
 	j sleep_hang
 
 enable_L2:
 	la t4, l2c
 	REG_L t4, 0(t4)
-	beq x0, t4, restore_sp
+	beq x0, t4, restore_regs
 
 	csrr    t0, CSR_MHARTID
-	bnez	t0, restore_sp
+	bnez	t0, restore_regs
 
-	# enable L2
-	lw	t1, 0x8(t4)
-	ori	t1, t1, 0x1
+	# restore L2 setting
+	POP(t1)
 	sw	t1, 0x8(t4)
 
-restore_sp:
-	# load sp
-	li	t0, 0x20
-	li	t1, 3
-	csrr	t2, CSR_MHARTID
-	add	t1, t1, t2
-	mul	t0, t0, t1
-	addi	t0, t0, 0x84
-	la t1, smu
-	REG_L t1, 0(t1)
-	add	t0, t0, t1
-	lw	sp, 0(t0)
-
+restore_regs:
 	# resume cpu regisger
 	# Pop pmp
 	POP_CSR(CSR_PMPADDR15)
@@ -377,7 +415,40 @@ restore_sp:
 	POP_CSR(CSR_SIE)
 	POP_CSR(CSR_SSTATUS)
 
+	# check if PPMA exists
+	csrr	t0, CSR_MMSC_CFG
+	li	t1, 0x40000000	# 30th bit: PPMA
+	and	t0, t0, t1
+	beqz	t0, 2f
 	# Pop Andes m-mode reg
+	POP_CSR(PMAADDR_15)
+	POP_CSR(PMAADDR_14)
+	POP_CSR(PMAADDR_13)
+	POP_CSR(PMAADDR_12)
+	POP_CSR(PMAADDR_11)
+	POP_CSR(PMAADDR_10)
+	POP_CSR(PMAADDR_9)
+	POP_CSR(PMAADDR_8)
+	POP_CSR(PMAADDR_7)
+	POP_CSR(PMAADDR_6)
+	POP_CSR(PMAADDR_5)
+	POP_CSR(PMAADDR_4)
+	POP_CSR(PMAADDR_3)
+	POP_CSR(PMAADDR_2)
+	POP_CSR(PMAADDR_1)
+	POP_CSR(PMAADDR_0)
+#if __riscv_xlen == 64
+	POP_CSR(PMACFG_2)
+	POP_CSR(PMACFG_0)
+#else
+	POP_CSR(PMACFG_3)
+	POP_CSR(PMACFG_2)
+	POP_CSR(PMACFG_1)
+	POP_CSR(PMACFG_0)
+#endif
+	# Pop cache setting
+2:	POP_CSR(CSR_MCACHE_CTL)
+
 	POP_CSR(CSR_MCOUNTEROVF)
 	POP_CSR(CSR_MCOUNTERMASK_U)
 	POP_CSR(CSR_MCOUNTERMASK_S)

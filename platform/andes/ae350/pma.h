@@ -39,6 +39,7 @@
 #define PMACFG_2	0xBC2
 #define PMACFG_3	0xBC3
 
+#ifndef __ASSEMBLER__
 
 extern unsigned long pma_used_table[PMA_NUM];
 
@@ -53,4 +54,5 @@ void mcall_free_pma(unsigned long va);
 
 void init_pma(void);
 
+#endif
 #endif
