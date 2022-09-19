@@ -60,6 +60,9 @@ union sbi_pmu_ctr_info {
 	};
 };
 
+/* Platform specific PMU device */
+static const struct sbi_pmu_device *pmu_dev;
+
 /* Mapping between event range and possible counters  */
 static struct sbi_pmu_hw_event hw_event_map[SBI_PMU_HW_EVENT_MAX] = {0};
 
@@ -343,6 +346,11 @@ int sbi_pmu_ctr_start(unsigned long cbase, unsigned long cmask,
 	int ret = SBI_EINVAL;
 	bool bUpdate = FALSE;
 
+	if (pmu_dev && pmu_dev->hw_counter_start) {
+		ret = pmu_dev->hw_counter_start(cbase, ival, flags);
+		return ret;
+	}
+
 	if (__fls(ctr_mask) >= total_ctrs)
 		return ret;
 
@@ -416,6 +424,11 @@ int sbi_pmu_ctr_stop(unsigned long cbase, unsigned long cmask,
 	int event_idx_type;
 	uint32_t event_code;
 	unsigned long ctr_mask = cmask << cbase;
+
+	if (pmu_dev && pmu_dev->hw_counter_stop) {
+		ret = pmu_dev->hw_counter_stop(cbase, flag);
+		return ret;
+	}
 
 	if (__fls(ctr_mask) >= total_ctrs)
 		return SBI_EINVAL;
@@ -712,6 +725,19 @@ static void pmu_reset_event_map(u32 hartid)
 	for (j = 0; j < SBI_PMU_FW_CTR_MAX; j++)
 		sbi_memset(&fw_event_map[hartid][j], 0,
 			   sizeof(struct sbi_pmu_fw_event));
+}
+
+const struct sbi_pmu_device *sbi_pmu_get_device(void)
+{
+	return pmu_dev;
+}
+
+void sbi_pmu_set_device(const struct sbi_pmu_device *dev)
+{
+	if (!dev || pmu_dev)
+		return;
+
+	pmu_dev = dev;
 }
 
 void sbi_pmu_exit(struct sbi_scratch *scratch)

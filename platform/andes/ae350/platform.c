@@ -14,6 +14,7 @@
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_hart.h>
 #include <sbi/sbi_ipi.h>
+#include <sbi/sbi_pmu.h>
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_trap.h>
@@ -144,6 +145,19 @@ static int ae350_system_reset_devices_init(void)
 	    fdt_parse_compat_addr(fdt, (uint64_t *)&wdt.addr, "andestech,atcwdt200"))
 		return SBI_ENODEV;
 
+	return 0;
+}
+
+struct sbi_pmu_device andes_pmu = {
+	.name = "ae350_pmu",
+	.hw_counter_start = hw_l2c_counter_start,
+	.hw_counter_stop = hw_l2c_counter_stop
+};
+
+static int ae350_pmu_init(void)
+{
+	if (l2c.addr)
+		sbi_pmu_set_device(&andes_pmu);
 	return 0;
 }
 
@@ -519,6 +533,8 @@ const struct sbi_platform_operations platform_ops = {
 	.early_init = ae350_early_init,
 
 	.final_init = ae350_final_init,
+
+	.pmu_init = ae350_pmu_init,
 
 	.console_init = ae350_console_init,
 

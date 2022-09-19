@@ -28,6 +28,23 @@
 #define SBI_PMU_CTR_MAX	   (SBI_PMU_HW_CTR_MAX + SBI_PMU_FW_CTR_MAX)
 #define SBI_PMU_FIXED_CTR_MASK 0x07
 
+struct sbi_pmu_device {
+	/** Name of the PMU platform device */
+	char name[32];
+
+	int (*hw_counter_start)(int counter_index,
+				uint64_t ival,
+				unsigned long flags);
+
+	int (*hw_counter_stop)(int counter_index, unsigned long flag);
+};
+
+/** Get the PMU platform device */
+const struct sbi_pmu_device *sbi_pmu_get_device(void);
+
+/** Set the PMU platform device */
+void sbi_pmu_set_device(const struct sbi_pmu_device *dev);
+
 /** Initialize PMU */
 int sbi_pmu_init(struct sbi_scratch *scratch, bool cold_boot);
 
