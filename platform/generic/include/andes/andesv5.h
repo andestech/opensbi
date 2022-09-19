@@ -278,12 +278,4 @@
 #define V5_L2C_CTL_DRAMOCTL_MASK    (3UL << V5_L2C_CTL_DRAMOCTL_OFFSET)
 #define V5_L2C_CTL_DRAMICTL_MASK    (1UL << V5_L2C_CTL_DRAMICTL_OFFSET)
 
-#ifndef __ASSEMBLER__
-static inline bool andes_hpm(void)
-{
-	return !!((csr_read(CSR_MMSC_CFG) & CSR_MMSC_CFG_PMNDS_MASK)
-			&& misa_extension('S'));
-}
-#endif /* __ASSEMBLER__ */
-
 #endif /* _ANDESV5_H_ */

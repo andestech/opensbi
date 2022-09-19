@@ -9,6 +9,48 @@
 #ifndef __FDT_FIXUP_H__
 #define __FDT_FIXUP_H__
 
+struct hw_evt_select {
+	/**
+	 * The description of an entry in
+	 * riscv,event-to-mhpmevent property
+	 */
+	uint32_t eidx;
+	uint64_t select;
+};
+
+struct hw_evt_counter {
+	/**
+	 * The description of an entry in
+	 * riscv,event-to-mhpmcounters property
+	 */
+	uint32_t eidx_start;
+	uint32_t eidx_end;
+	uint32_t ctr_map;
+};
+
+struct raw_evt_counter {
+	/**
+	 * The description of an entry in
+	 * riscv,raw-event-to-mhpmcounters property
+	 */
+	uint64_t select;
+	uint64_t select_mask;
+	uint32_t ctr_map;
+};
+
+/**
+ * Add PMU properties in the DT
+ *
+ * Add information about event selector and event to counter mapping to the devicetree.
+ *
+ * @param fdt: device tree blob
+ * @param states: array of hw event mapping descriptions, ending with empty element
+ * @return zero on success and -ve on failure
+ */
+int fdt_add_pmu(const struct hw_evt_select *selects,
+							 const struct hw_evt_counter *counters,
+							 const struct raw_evt_counter *rcounters);
+
 /**
  * Fix up the CPU node in the device tree
  *

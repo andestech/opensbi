@@ -9,7 +9,6 @@
 
 #include <platform_override.h>
 #include <sbi_utils/fdt/fdt_helper.h>
-#include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/sys/atcsmu.h>
 #include <sbi/sbi_bitops.h>
 #include <sbi/sbi_console.h>
@@ -21,6 +20,7 @@
 #include <andes/andesv5.h>
 #include <andes/cache.h>
 #include <andes/pma.h>
+#include <andes/pmu.h>
 #include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
@@ -110,6 +110,21 @@ static inline unsigned long mcall_set_pfm(void)
 {
 	csr_clear(CSR_SLIP, CSR_SLIP_PMOVI_MASK);
 	csr_set(CSR_MIE, CSR_MIE_PMOVI_MASK);
+	return 0;
+}
+
+
+static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
+{
+	int rc;
+
+	if (!cold_boot)
+		return 0;
+
+	rc = ae350_fdt_add_pmu();
+	if (rc)
+		return rc;
+
 	return 0;
 }
 
@@ -204,6 +219,7 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 
 const struct platform_override andes_ae350 = {
 	.match_table = andes_ae350_match,
+	.early_init  = ae350_early_init,
 	.final_init  = ae350_final_init,
 	.vendor_ext_provider = ae350_vendor_ext_provider,
 };
