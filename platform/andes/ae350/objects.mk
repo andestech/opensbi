@@ -8,4 +8,4 @@
 #   Nylon Chen <nylon7@andestech.com>
 #
 
-platform-objs-y += cache.o platform.o plicsw.o plmt.o pma.o trigger.o sleep.o smu.o
+platform-objs-y += cache.o platform.o plicsw.o plmt.o pma.o pmu.o trigger.o sleep.o smu.o

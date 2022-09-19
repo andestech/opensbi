@@ -20,6 +20,7 @@
 #include <sbi/sbi_trap.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
+#include <sbi_utils/fdt/fdt_pmu.h>
 #include <sbi_utils/irqchip/plic.h>
 #include <sbi_utils/serial/uart8250.h>
 #include <libfdt.h>
@@ -31,6 +32,7 @@
 #include "smu.h"
 #include "wdt.h"
 #include "pma.h"
+#include "pmu.h"
 
 /* default to V0 memory map offset */
 unsigned long L2C_REG_PER_CORE_OFFSET = 0x10;
@@ -158,7 +160,27 @@ static int ae350_pmu_init(void)
 {
 	if (l2c.addr)
 		sbi_pmu_set_device(&andes_pmu);
+	fdt_pmu_setup(fdt_get_address());
+	andes_pmu_setup();
 	return 0;
+}
+
+static uint64_t ae350_pmu_xlate_to_mhpmevent(uint32_t event_idx, uint64_t data)
+{
+	uint64_t evt_val = 0;
+
+	/* data is valid only for raw events and is equal to event selector */
+	if (event_idx == SBI_PMU_EVENT_RAW_IDX)
+		evt_val = data;
+	else {
+		evt_val = fdt_pmu_get_select_value(event_idx);
+		if (!evt_val)
+			evt_val = andes_pmu_get_select_value(event_idx);
+		if (!evt_val)
+			evt_val = (uint64_t)event_idx;
+	}
+
+	return evt_val;
 }
 
 static void ae350_hsm_init(void)
@@ -543,6 +565,8 @@ const struct sbi_platform_operations platform_ops = {
 	.ipi_init     = ae350_ipi_init,
 
 	.timer_init	   = ae350_timer_init,
+
+	.pmu_xlate_to_mhpmevent = ae350_pmu_xlate_to_mhpmevent,
 
 	.vendor_ext_provider = ae350_vendor_ext_provider
 };
