@@ -15,6 +15,7 @@
 #include <sbi/sbi_pmu.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_string.h>
+#include <../platform/andes/ae350/platform.h>
 #include <../platform/andes/ae350/cache.h>
 
 /** Information about hardware counters */
@@ -272,7 +273,7 @@ static int pmu_ctr_enable_irq_hw(int ctr_idx)
 	 * Otherwise, there will be race conditions where we may clear the bit
 	 * the software is yet to handle the interrupt.
 	 */
-	if (!(mip_val & MIP_LCOFIP)) {
+	if (!(mip_val & MIP_LCOFIP) && !(mip_val & MIP_MOVFIP)) {
 		mhpmevent_curr &= of_mask;
 		csr_write_num(mhpmevent_csr, mhpmevent_curr);
 	}
@@ -313,8 +314,12 @@ static int pmu_ctr_start_hw(uint32_t cidx, uint64_t ival, bool ival_update)
 
 	__clear_bit(cidx, &mctr_inhbt);
 
-	if (sbi_hart_has_feature(scratch, SBI_HART_HAS_SSCOFPMF))
-		pmu_ctr_enable_irq_hw(cidx);
+	if (sbi_hart_has_feature(scratch, SBI_HART_HAS_SSCOFPMF)) {
+		if (andes_hpm())
+			csr_set(CSR_MCOUNTERINTEN, 1UL << cidx);
+		else
+			pmu_ctr_enable_irq_hw(cidx);
+	}
 	csr_write(CSR_MCOUNTINHIBIT, mctr_inhbt);
 
 skip_inhibit_update:
@@ -390,6 +395,8 @@ static int pmu_ctr_stop_hw(uint32_t cidx)
 	if (!__test_bit(cidx, &mctr_inhbt)) {
 		__set_bit(cidx, &mctr_inhbt);
 		csr_write(CSR_MCOUNTINHIBIT, mctr_inhbt);
+		if (andes_hpm())
+			csr_clear(CSR_MCOUNTERINTEN, 1UL << cidx);
 		return 0;
 	} else
 		return SBI_EALREADY_STOPPED;

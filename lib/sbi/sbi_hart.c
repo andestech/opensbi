@@ -21,6 +21,7 @@
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_trap.h>
+#include <../platform/andes/ae350/platform.h>
 
 extern void __sbi_expected_trap(void);
 extern void __sbi_expected_trap_hext(void);
@@ -500,6 +501,13 @@ __mhpm_skip:
 		csr_read_allowed(CSR_SCOUNTOVF, (unsigned long)&trap);
 		if (!trap.cause)
 			hfeatures->features |= SBI_HART_HAS_SSCOFPMF;
+		else {
+			csr_read_allowed(CSR_SCOUNTEROVF, (unsigned long)&trap);
+			if (!trap.cause)
+				hfeatures->features |= SBI_HART_HAS_SSCOFPMF;
+			else
+				sbi_printf("Warning: The Sscofpmf does not support currently\n");
+		}
 	}
 
 	/* Detect if hart supports time CSR */
