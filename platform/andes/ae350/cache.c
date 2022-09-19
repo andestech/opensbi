@@ -11,6 +11,7 @@
 #include <sbi/riscv_io.h>
 #include <sbi/sbi_types.h>
 #include <sbi/riscv_io.h>
+#include <sbi_utils/fdt/fdt_helper.h>
 #include "platform.h"
 #include "cache.h"
 #include "libfdt_env.h"
@@ -30,6 +31,11 @@ static inline unsigned long get_cache_line_size()
 
 	return dcache_line_size;
 }
+
+#define L2C_MAX_COUNTERS	32
+#define SEL_PER_CTL 8
+#define EVSEL_MASK  0xff
+#define SEL_OFF(id) (8 * (id % 8))
 
 uintptr_t mcall_set_mcache_ctl(unsigned long input)
 {
@@ -202,4 +208,35 @@ void cpu_dma_wb_range(unsigned long pa, unsigned long size, unsigned long last_h
 
 	start = start & (~(line_size - 1));
 	cpu_dcache_wb_range(start, end, last_hartid);
+}
+
+/* L2C event counter*/
+
+void l2c_write_counter(int idx, u64 value)
+{
+	u32 vall = value;
+	u32 valh = value >> 32;
+
+	writel(vall, (void *)(uintptr_t)(l2c.addr +
+					 L2C_REG_CN_HPM_OFFSET(idx)));
+	writel(valh, (void *)(uintptr_t)(l2c.addr +
+					 L2C_REG_CN_HPM_OFFSET(idx) + 0x4));
+}
+
+void l2c_pmu_disable_counter(int idx)
+{
+	int n = idx / SEL_PER_CTL;
+	u32 vall = readl((void *)(uintptr_t)(l2c.addr +
+					     L2C_HPM_CN_CTL_OFFSET(n)));
+	u32 valh = readl((void *)(uintptr_t)(l2c.addr +
+					     L2C_HPM_CN_CTL_OFFSET(n) + 0x4));
+	u64 val = ((u64)valh << 32) | vall;
+
+	val |= (EVSEL_MASK << SEL_OFF(idx));
+	vall = val;
+	valh = val >> 32;
+	writel(vall, (void *)(uintptr_t)(l2c.addr +
+					 L2C_HPM_CN_CTL_OFFSET(n)));
+	writel(valh, (void *)(uintptr_t)(l2c.addr +
+					 L2C_HPM_CN_CTL_OFFSET(n) + 0x4));
 }

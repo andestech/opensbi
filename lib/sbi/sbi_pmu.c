@@ -15,6 +15,7 @@
 #include <sbi/sbi_pmu.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_string.h>
+#include <../platform/andes/ae350/cache.h>
 
 /** Information about hardware counters */
 struct sbi_pmu_hw_event {
@@ -348,7 +349,8 @@ int sbi_pmu_ctr_start(unsigned long cbase, unsigned long cmask,
 
 	if (pmu_dev && pmu_dev->hw_counter_start) {
 		ret = pmu_dev->hw_counter_start(cbase, ival, flags);
-		return ret;
+		if (!ret)
+			return ret;
 	}
 
 	if (__fls(ctr_mask) >= total_ctrs)
@@ -427,7 +429,8 @@ int sbi_pmu_ctr_stop(unsigned long cbase, unsigned long cmask,
 
 	if (pmu_dev && pmu_dev->hw_counter_stop) {
 		ret = pmu_dev->hw_counter_stop(cbase, flag);
-		return ret;
+		if (!ret)
+			return ret;
 	}
 
 	if (__fls(ctr_mask) >= total_ctrs)

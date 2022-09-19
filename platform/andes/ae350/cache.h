@@ -75,6 +75,18 @@ uintptr_t mcall_l1_cache_d_prefetch_op(unsigned long enable);
 uintptr_t mcall_non_blocking_load_store(unsigned long enable);
 uintptr_t mcall_write_around(unsigned long enable);
 
+/* L2C counter */
+
+/* Flags defined for andes l2c event */
+#define SBI_PMU_ANDES_L2C_EVENT	0xff
+
+#define L2C_EVSEL_MASK	0xff
+#define EVSEL_OFF	3
+#define L2C_MARK_OFF	8
+#define L2C_FLAG_OFF	(L2C_MARK_OFF + EVSEL_OFF)
+void l2c_write_counter(int idx, u64 value);
+void l2c_pmu_disable_counter(int idx);
+
 /*
  * In 45-series, When D-cache is disabled, CM also needs to be disabled together.
  * When D-cache is disabled, all the load/store will directly access to the memory(not L2).
