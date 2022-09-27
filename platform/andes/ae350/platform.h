@@ -132,6 +132,8 @@
 #define IRQ_M_PMU	18
 #define MIP_MOVFIP      (1 << IRQ_M_PMU)
 #define MIP_SOVFIP      (1 << IRQ_M_PMU)
+#define	MMSC_CFG_PMNDS	(1 << 15)
+#define	MISA_SMODE	(1 << 18)
 
 /* nds v5 mmisc_ctl register*/
 #define V5_MMISC_CTL_VEC_PLIC_OFFSET            1
@@ -298,6 +300,7 @@ struct l2c_data {
 };
 
 int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask);
+bool andes_hpm(void);
 static inline __attribute__((always_inline)) bool is_andestar45_series(void)
 {
 	uintptr_t marchid = csr_read(CSR_MARCHID);
@@ -330,6 +333,7 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_FREE_PMA,
 	SBI_EXT_ANDES_PROBE_PMA,
 	SBI_EXT_ANDES_DCACHE_WBINVAL_ALL,
+	SBI_EXT_ANDES_HPM,
 };
 #endif /* __ASSEMBLER__ */
 

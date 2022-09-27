@@ -274,6 +274,12 @@ static uintptr_t mcall_suspend_prepare(char main_core, char enable)
 	return 0;
 }
 
+bool andes_hpm(void)
+{
+	return (((csr_read(CSR_MMSC_CFG) & MMSC_CFG_PMNDS) != 0)
+		&& ((csr_read(CSR_MISA) & MISA_SMODE) != 0));
+}
+
 extern void cpu_suspend2ram(void);
 static uintptr_t mcall_suspend_backup(void)
 {
@@ -542,6 +548,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		break;
 	case SBI_EXT_ANDES_DCACHE_WBINVAL_ALL:
 		ret = mcall_dcache_wbinval_all();
+		break;
+	case SBI_EXT_ANDES_HPM:
+		*out_value = andes_hpm();
 		break;
 	default:
 		sbi_printf("Unsupported vendor sbi call : %ld\n", funcid);
