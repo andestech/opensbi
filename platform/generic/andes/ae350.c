@@ -191,6 +191,9 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 		*out_value = mcall_probe_pma();
 		break;
 #endif
+	case SBI_EXT_ANDES_HPM:
+		*out_value = andes_hpm();
+		break;
 	default:
 		sbi_panic("%s(): funcid: %#lx is not supported\n", __func__, funcid);
 		break;
