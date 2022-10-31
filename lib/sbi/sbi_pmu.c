@@ -273,7 +273,7 @@ static int pmu_ctr_enable_irq_hw(int ctr_idx)
 	 * Otherwise, there will be race conditions where we may clear the bit
 	 * the software is yet to handle the interrupt.
 	 */
-	if (!(mip_val & MIP_LCOFIP) && !(mip_val & MIP_MOVFIP)) {
+	if (!(mip_val & MIP_LCOFIP) && !(mip_val & MIP_PMOVI)) {
 		mhpmevent_curr &= of_mask;
 		csr_write_num(mhpmevent_csr, mhpmevent_curr);
 	}

@@ -235,8 +235,8 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 			sbi_ipi_process();
 			break;
 		case IRQ_M_PMU:
-			csr_clear(CSR_MIE, MIP_MOVFIP);
-			csr_set(CSR_SLIP, MIP_MOVFIP);
+			csr_clear(CSR_MIE, MIP_PMOVI);
+			csr_set(CSR_SLIP, MIP_PMOVI);
 			break;
 		default:
 			msg = "unhandled external interrupt";

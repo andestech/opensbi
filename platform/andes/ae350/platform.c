@@ -213,11 +213,11 @@ static int ae350_early_init(bool cold_boot)
 		/* Machine counter write enable */
 		csr_write(CSR_MCOUNTERWEN, 0xfffffffd);
 		/* Supervisor local interrupt enable */
-		csr_write(CSR_SLIE, MIP_MOVFIP);
+		csr_write(CSR_SLIE, MIP_PMOVI);
 		/* disable machine counter in M-mode */
 		csr_write(CSR_MCOUNTERMASK_M, 0xfffffffd);
 		/* delegate S-mode local interrupt to S-mode */
-		csr_write(CSR_MSLIDELEG, MIP_MOVFIP);
+		csr_write(CSR_MSLIDELEG, MIP_PMOVI);
 	}
 	return 0;
 }
@@ -264,7 +264,7 @@ static uintptr_t mcall_set_trigger(long type, uintptr_t data, unsigned int m,
 static uintptr_t mcall_set_pfm(void)
 {
 	csr_clear(CSR_SLIP, MIP_SOVFIP);
-	csr_set(CSR_MIE, MIP_MOVFIP);
+	csr_set(CSR_MIE, MIP_PMOVI);
 	return 0;
 }
 

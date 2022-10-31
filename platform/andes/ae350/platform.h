@@ -130,8 +130,8 @@
 
 /* MISC */
 #define IRQ_M_PMU	18
-#define MIP_MOVFIP      (1 << IRQ_M_PMU)
-#define MIP_SOVFIP      (1 << IRQ_M_PMU)
+#define MIP_PMOVI	(1 << IRQ_M_PMU)
+#define MIP_SOVFIP	(1 << IRQ_M_PMU)
 #define	MMSC_CFG_PMNDS	(1 << 15)
 #define	MISA_SMODE	(1 << 18)
 
