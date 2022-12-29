@@ -88,28 +88,32 @@ void l2c_write_counter(int idx, u64 value);
 void l2c_pmu_disable_counter(int idx);
 
 /*
+ * [Bugzilla #26359]
+ * HW expects I/D cache, IOCP, CM to not have any transactions when entering sleep mode.
+ * To achieve this requirement, we need to disable I/D cache and CM before sleep.
+ *
  * In 45-series, When D-cache is disabled, CM also needs to be disabled together.
  * When D-cache is disabled, all the load/store will directly access to the memory(not L2).
  *
  * Scenario:
- *   mcall_dcache_op(0);
- *   mcall_dcache_op(1);   -->  prologue: addi    sp,sp,-16
- *                                        sw      ra,12(sp)    <-- ra stores to "Memory"
- *                                        .....
- *                              Enable D-cache & CM
- *                                        .....
- *                              Epilogue: c.lwsp  ra,12(sp)    <-- read sp from "L2"
- *                                        c.addi  sp,16            & store back to ra
- *                                        ret
+ *   mcall_cache_op(0);
+ *   mcall_cache_op(1);   -->  prologue: addi    sp,sp,-16
+ *                                       sw      ra,12(sp)    <-- ra stores to "Memory"
+ *                                       .....
+ *                             Enable I/D-cache & CM
+ *                                       .....
+ *                             Epilogue: c.lwsp  ra,12(sp)    <-- read sp from "L2"
+ *                                       c.addi  sp,16            & store back to ra
+ *                                       ret
  * ---------------------------------------------------------------------------------------
  * We can see that the function prologue & epilogue store & restore the "sp" register
  * in different memory region, which will cause load access fault later.
  *
  * There are 2 way to avoid this situation:
  *    1. invalid "sp" addr in both L1 & L2, make sure "sp" get the newest value from memory.
- *    2. Declare mcall_dcache_op() as inline or macro to eliminate prologue & epilogue.
+ *    2. Declare mcall_cache_op() as inline or macro to eliminate prologue & epilogue.
  */
-static inline __attribute__((always_inline)) uintptr_t mcall_dcache_op(unsigned int enable)
+static inline __attribute__((always_inline)) uintptr_t mcall_cache_op(unsigned int enable)
 {
 	if (enable) {
 		if (is_andestar45_series()) {
@@ -132,9 +136,10 @@ static inline __attribute__((always_inline)) uintptr_t mcall_dcache_op(unsigned 
 		}
 
 		csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_INVAL_ALL);
-		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
+		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN | V5_MCACHE_CTL_IC_EN);
+		asm("fence.i");
 	} else {
-		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
+		csr_clear(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN | V5_MCACHE_CTL_IC_EN);
 		csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
 
 		if (is_andestar45_series()) {

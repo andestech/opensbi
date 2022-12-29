@@ -408,11 +408,11 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 		if (main_core)
 			smu_check_pcs_status(LightSleep_STATUS, cpu_nums);
 		// D-cache disable
-		mcall_dcache_op(0);
+		mcall_cache_op(0);
 		// wait for interrupt
 		wfi();
 		// D-cache enable
-		mcall_dcache_op(1);
+		mcall_cache_op(1);
 		// enable privilege
 		smu_suspend_prepare(main_core, true);
 		break;
@@ -492,8 +492,8 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 	case SBI_EXT_ANDES_ICACHE_OP:
 		ret = mcall_icache_op(regs->a0);
 		break;
-	case SBI_EXT_ANDES_DCACHE_OP:
-		ret = mcall_dcache_op(regs->a0);
+	case SBI_EXT_ANDES_CACHE_OP:
+		ret = mcall_cache_op(regs->a0);
 		break;
 	case SBI_EXT_ANDES_L1CACHE_I_PREFETCH:
 		ret = mcall_l1_cache_i_prefetch_op(regs->a0);
