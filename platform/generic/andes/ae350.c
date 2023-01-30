@@ -12,11 +12,14 @@
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/sys/atcsmu.h>
 #include <sbi/sbi_bitops.h>
+#include <sbi/sbi_console.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_init.h>
+#include <andes/ae350.h>
 #include <andes/andes45.h>
+#include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
 extern void __ae350_enable_coherency_warmboot(void);
@@ -103,8 +106,11 @@ static void ae350_hsm_device_init(void)
 
 static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 {
-	if (cold_boot)
-		ae350_hsm_device_init();
+	if (!cold_boot)
+		return 0;
+
+	ae350_hsm_device_init();
+	trigger_init();
 
 	return 0;
 }
@@ -114,7 +120,28 @@ static const struct fdt_match andes_ae350_match[] = {
 	{ },
 };
 
+static int ae350_vendor_ext_provider(long extid, long funcid,
+					      const struct sbi_trap_regs *regs,
+					      unsigned long *out_value,
+					      struct sbi_trap_info *out_trap,
+					      const struct fdt_match *match)
+{
+	switch (funcid) {
+#ifdef CONFIG_ANDES_TRIGGER
+	case SBI_EXT_ANDES_TRIGGER:
+		*out_value = mcall_set_trigger(regs->a0, regs->a1, 0, 0, regs->a2);
+		break;
+#endif
+	default:
+		sbi_panic("%s(): funcid: %#lx is not supported\n", __func__, funcid);
+		break;
+	}
+
+	return 0;
+}
+
 const struct platform_override andes_ae350 = {
 	.match_table = andes_ae350_match,
 	.final_init  = ae350_final_init,
+	.vendor_ext_provider = ae350_vendor_ext_provider,
 };

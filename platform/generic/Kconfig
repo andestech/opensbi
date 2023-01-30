@@ -47,3 +47,11 @@ config PLATFORM_SIFIVE_FU740
 	default n
 
 endif
+
+if PLATFORM_ANDES_AE350
+
+config ANDES_TRIGGER
+	bool "Andes trigger support"
+	default n
+
+endif
