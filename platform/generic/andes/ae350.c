@@ -144,6 +144,12 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 	case SBI_EXT_ANDES_SET_PFM:
 		ret = mcall_set_pfm();
 		break;
+	case SBI_EXT_ANDES_READ_POWERBRAKE:
+		*out_value = csr_read(CSR_MPFT_CTL);
+		break;
+	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
+		csr_write(CSR_MPFT_CTL, regs->a0);
+		break;
 	default:
 		sbi_panic("%s(): funcid: %#lx is not supported\n", __func__, funcid);
 		break;

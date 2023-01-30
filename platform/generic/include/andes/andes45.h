@@ -4,6 +4,7 @@
 #define CSR_MARCHID_MICROID 0xfff
 
 /* Memory and Miscellaneous Registers */
+#define CSR_MPFT_CTL 0x7c5
 #define CSR_MCACHE_CTL 0x7ca
 #define CSR_MCCTLCOMMAND 0x7cc
 
