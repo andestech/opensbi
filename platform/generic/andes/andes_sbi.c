@@ -11,6 +11,7 @@
 #include <sbi/sbi_bitops.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_types.h>
+#include <andes/andes_pma.h>
 #include <andes/trigger.h>
 
 enum sbi_ext_andes_fid {
@@ -19,6 +20,9 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_TRIGGER_SET = ANDES_SBI_INTERNAL_FID_START,
 	SBI_EXT_ANDES_POWERBRAKE_READ,
 	SBI_EXT_ANDES_POWERBRAKE_WRITE,
+	SBI_EXT_ANDES_PMA_SET,
+	SBI_EXT_ANDES_PMA_FREE,
+	SBI_EXT_ANDES_PMA_PROBE,
 };
 
 static bool andes_cache_controllable(void)
@@ -69,6 +73,15 @@ int andes_sbi_vendor_ext_provider(long funcid,
 		if (andes_powerbrake()) {
 			csr_write(CSR_MPFT_CTL, regs->a0);
 		}
+		break;
+	case SBI_EXT_ANDES_PMA_SET:
+		ret = mcall_set_pma(regs->a0, regs->a1, regs->a2);
+		break;
+	case SBI_EXT_ANDES_PMA_FREE:
+		ret = mcall_free_pma(regs->a0);
+		break;
+	case SBI_EXT_ANDES_PMA_PROBE:
+		out->value = mcall_probe_pma();
 		break;
 
 	default:

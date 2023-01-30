@@ -20,6 +20,7 @@
 #include <sbi/sbi_init.h>
 #include <andes/andes_sbi.h>
 #include <andes/andes.h>
+#include <andes/andes_pma.h>
 #include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
@@ -109,6 +110,7 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 	if (!cold_boot)
 		return 0;
 
+	pma_init();
 	ae350_hsm_device_init();
 	trigger_init();
 

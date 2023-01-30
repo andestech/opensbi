@@ -11,6 +11,7 @@ config ANDES_TRIGGER
 config ANDES_SBI
 	bool "Andes SBI support"
 	select ANDES_TRIGGER
+	select ANDES_PMA
 	default n
 
 config ANDES_PMU
