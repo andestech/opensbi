@@ -4,8 +4,13 @@ config ANDES_PMA
 	bool "Andes PMA support"
 	default n
 
+config ANDES_TRIGGER
+	bool "Andes Trigger support"
+	default n
+
 config ANDES_SBI
 	bool "Andes SBI support"
+	select ANDES_TRIGGER
 	default n
 
 config ANDES_PMU

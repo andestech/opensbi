@@ -18,7 +18,9 @@
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_init.h>
+#include <andes/andes_sbi.h>
 #include <andes/andes.h>
+#include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
 extern void __ae350_enable_coherency_warmboot(void);
@@ -104,8 +106,11 @@ static void ae350_hsm_device_init(void)
 
 static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 {
-	if (cold_boot)
-		ae350_hsm_device_init();
+	if (!cold_boot)
+		return 0;
+
+	ae350_hsm_device_init();
+	trigger_init();
 
 	return 0;
 }
@@ -120,4 +125,5 @@ const struct platform_override andes_ae350 = {
 	.final_init  = ae350_final_init,
 	.extensions_init = andes_pmu_extensions_init,
 	.pmu_init = andes_pmu_init,
+	.vendor_ext_provider = andes_sbi_vendor_ext_provider,
 };
