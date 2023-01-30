@@ -17,6 +17,8 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_FID0 = 0, /* Reserved for future use */
 	SBI_EXT_ANDES_IOCP_SW_WORKAROUND,
 	SBI_EXT_ANDES_TRIGGER_SET = ANDES_SBI_INTERNAL_FID_START,
+	SBI_EXT_ANDES_POWERBRAKE_READ,
+	SBI_EXT_ANDES_POWERBRAKE_WRITE,
 };
 
 static bool andes_cache_controllable(void)
@@ -51,6 +53,22 @@ int andes_sbi_vendor_ext_provider(long funcid,
 		break;
 	case SBI_EXT_ANDES_TRIGGER_SET:
 		out->value = mcall_set_trigger(regs->a0, regs->a1, 0, 0, regs->a2);
+		break;
+	/*
+	 * Before accessing the mpft_ctl CSR, we need to check if the
+	 * PowerBrake feature is supported or not.
+	 */
+	case SBI_EXT_ANDES_POWERBRAKE_READ:
+		if (andes_powerbrake()) {
+			out->value = csr_read(CSR_MPFT_CTL);
+		} else {
+			out->value = 0;
+		}
+		break;
+	case SBI_EXT_ANDES_POWERBRAKE_WRITE:
+		if (andes_powerbrake()) {
+			csr_write(CSR_MPFT_CTL, regs->a0);
+		}
 		break;
 
 	default:

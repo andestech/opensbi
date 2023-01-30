@@ -59,6 +59,7 @@
 #define CSR_MMSC_CFG		0xfc2
 #define CSR_MMSC_CFG2		0xfc3
 #define CSR_MVEC_CFG		0xfc7
+#define CSR_MMSC_CFG_PFT_MASK	(1 << 4)
 
 /* Counter Related Registers */
 #define CSR_MCOUNTERWEN		0x7ce
@@ -105,6 +106,12 @@
 	(((csr_read(CSR_MMSC_CFG) &			\
 	   MMSC_CFG_PMNDS_MASK)				\
 	  && misa_extension('S')) ? true : false);	\
+})
+
+#define andes_powerbrake()				\
+({							\
+	((csr_read(CSR_MMSC_CFG) &			\
+	  CSR_MMSC_CFG_PFT_MASK) ? true : false);	\
 })
 
 #endif /* __ASSEMBLER__ */
