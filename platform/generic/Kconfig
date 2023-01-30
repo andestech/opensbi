@@ -54,4 +54,8 @@ config ANDES_TRIGGER
 	bool "Andes trigger support"
 	default n
 
+config ANDES_PMA
+	bool "Andes programmable PMA support"
+	default n
+
 endif

@@ -19,6 +19,7 @@
 #include <sbi/sbi_init.h>
 #include <andes/ae350.h>
 #include <andes/andes45.h>
+#include <andes/pma.h>
 #include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
@@ -150,6 +151,17 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
 		csr_write(CSR_MPFT_CTL, regs->a0);
 		break;
+#ifdef CONFIG_ANDES_PMA
+	case SBI_EXT_ANDES_SET_PMA:
+		ret = mcall_set_pma(regs->a0, regs->a1, regs->a2);
+		break;
+	case SBI_EXT_ANDES_FREE_PMA:
+		ret = mcall_free_pma(regs->a0);
+		break;
+	case SBI_EXT_ANDES_PROBE_PMA:
+		*out_value = mcall_probe_pma();
+		break;
+#endif
 	default:
 		sbi_panic("%s(): funcid: %#lx is not supported\n", __func__, funcid);
 		break;
