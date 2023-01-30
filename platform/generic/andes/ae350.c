@@ -104,6 +104,13 @@ static void ae350_hsm_device_init(void)
 	}
 }
 
+static inline unsigned long mcall_set_pfm(void)
+{
+	csr_clear(CSR_SLIP, CSR_SLIP_PMOVI_MASK);
+	csr_set(CSR_MIE, CSR_MIE_PMOVI_MASK);
+	return 0;
+}
+
 static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 {
 	if (!cold_boot)
@@ -126,18 +133,23 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 					      struct sbi_trap_info *out_trap,
 					      const struct fdt_match *match)
 {
+	int ret = 0;
+
 	switch (funcid) {
 #ifdef CONFIG_ANDES_TRIGGER
 	case SBI_EXT_ANDES_TRIGGER:
 		*out_value = mcall_set_trigger(regs->a0, regs->a1, 0, 0, regs->a2);
 		break;
 #endif
+	case SBI_EXT_ANDES_SET_PFM:
+		ret = mcall_set_pfm();
+		break;
 	default:
 		sbi_panic("%s(): funcid: %#lx is not supported\n", __func__, funcid);
 		break;
 	}
 
-	return 0;
+	return ret;
 }
 
 const struct platform_override andes_ae350 = {
