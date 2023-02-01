@@ -15,7 +15,7 @@
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_types.h>
-#include <andes/andes45.h>
+#include <andes/andesv5.h>
 #include <andes/pma.h>
 
 /*

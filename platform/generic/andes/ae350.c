@@ -18,7 +18,7 @@
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_init.h>
 #include <andes/ae350.h>
-#include <andes/andes45.h>
+#include <andes/andesv5.h>
 #include <andes/pma.h>
 #include <andes/trigger.h>
 
