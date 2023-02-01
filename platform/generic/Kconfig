@@ -58,4 +58,8 @@ config ANDES_PMA
 	bool "Andes programmable PMA support"
 	default n
 
+config ANDES_CACHE
+	bool "Andes cache support"
+	default n
+
 endif

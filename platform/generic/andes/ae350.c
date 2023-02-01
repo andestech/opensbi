@@ -19,6 +19,7 @@
 #include <sbi/sbi_init.h>
 #include <andes/ae350.h>
 #include <andes/andesv5.h>
+#include <andes/cache.h>
 #include <andes/pma.h>
 #include <andes/trigger.h>
 
@@ -137,6 +138,33 @@ static int ae350_vendor_ext_provider(long extid, long funcid,
 	int ret = 0;
 
 	switch (funcid) {
+#ifdef CONFIG_ANDES_CACHE
+	case SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS:
+		*out_value = csr_read(CSR_MCACHE_CTL);
+		break;
+	case SBI_EXT_ANDES_GET_MMISC_CTL_STATUS:
+		*out_value = csr_read(CSR_MMISC_CTL);
+		break;
+	case SBI_EXT_ANDES_SET_MCACHE_CTL:
+		mcall_set_mcache_ctl(regs->a0);
+		break;
+	case SBI_EXT_ANDES_SET_MMISC_CTL:
+		mcall_set_mmisc_ctl(regs->a0);
+		break;
+	case SBI_EXT_ANDES_DCACHE_WBINVAL_ALL:
+		mcall_dcache_wbinval_all();
+		break;
+
+	case SBI_EXT_ANDES_ICACHE_OP:
+	case SBI_EXT_ANDES_DCACHE_OP:
+	case SBI_EXT_ANDES_L1CACHE_I_PREFETCH:
+	case SBI_EXT_ANDES_L1CACHE_D_PREFETCH:
+	case SBI_EXT_ANDES_NON_BLOCKING_LOAD_STORE:
+	case SBI_EXT_ANDES_WRITE_AROUND:
+		sbi_panic("%s(): deprecated cache SBI call (funcid: %#lx)\n",
+				__func__, funcid);
+		break;
+#endif
 #ifdef CONFIG_ANDES_TRIGGER
 	case SBI_EXT_ANDES_TRIGGER:
 		*out_value = mcall_set_trigger(regs->a0, regs->a1, 0, 0, regs->a2);
