@@ -9,6 +9,7 @@
 
 #include <libfdt.h>
 #include <sbi/riscv_io.h>
+#include <sbi/sbi_console.h>
 #include <sbi/sbi_ecall_interface.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_hart.h>
@@ -63,15 +64,15 @@ static void ae350_system_reset(u32 type, u32 reason)
 
 	for (int i = 0; i < sbi_platform_hart_count(plat); i++)
 		if (smu_set_reset_vector(&smu, FLASH_BASE, i))
-			goto fail;
+			sbi_panic("ERR %s: Failed to program reset vector\n", __func__);
 
 	/* Program WDT control register  */
 	writew(ATCWDT200_WP_NUM, wdt_addr + WREN_REG);
 	writel(INT_CLK_32768 | INT_EN | RST_CLK_128 | RST_EN | WDT_EN,
 	       wdt_addr + CTRL_REG);
 
-fail:
-	sbi_hart_hang();
+	/* Should never reach here */
+	sbi_panic("ERR %s: WDT software reset failed\n", __func__);
 }
 
 static struct sbi_system_reset_device atcwdt200_reset = {
