@@ -40,6 +40,7 @@ static int fdt_plmt_cold_timer_init(void *fdt, int nodeoff,
 
 static const struct fdt_match timer_plmt_match[] = {
 	{ .compatible = "andestech,plmt0" },
+	{ .compatible = "riscv,plmt0" },
 	{},
 };
 

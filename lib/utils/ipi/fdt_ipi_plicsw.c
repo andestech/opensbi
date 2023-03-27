@@ -36,6 +36,7 @@ int fdt_plicsw_cold_ipi_init(void *fdt, int nodeoff,
 
 static const struct fdt_match ipi_plicsw_match[] = {
 	{ .compatible = "andestech,plicsw" },
+	{ .compatible = "riscv,plic1" },
 	{},
 };
 
