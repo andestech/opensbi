@@ -396,7 +396,7 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 
 	switch (suspend_mode) {
 	case LightSleepMode:
-		sbi_printf("%s(): CPU[%d] LightSleepMode\n", __func__, hartid);
+//		sbi_printf("%s(): CPU[%d] LightSleepMode\n", __func__, hartid);
 
 		// set SMU wakeup enable & MISC control
 		smu_set_wakeup_enable(hartid, main_core, wake_mask);
