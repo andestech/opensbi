@@ -156,7 +156,20 @@ cpu_suspend2ram:
 	PUSH_CSR(CSR_PMPADDR14)
 	PUSH_CSR(CSR_PMPADDR15)
 
+	# Store L2 setting before disabling cache
+	# Only store it on hart 0's stack
+	csrr	t1, CSR_MHARTID
+	bnez	t1, store_rst_vec
+	# Check if L2 exists
+	la	t0, l2c
+	REG_L	t0, 0(t0)
+	beqz	t0, store_rst_vec
+	# Save L2 setting
+	lw	t0, 8(t0)	# l2c base + 0x8: l2c control register offset
+	PUSH(t0)
+
 	# store reset vector
+store_rst_vec:
 	li	t0, 0x4
 	csrr	t1, CSR_MHARTID
 	mul	t0, t0, t1
@@ -236,11 +249,6 @@ disable_L2:
 	# check if it is core 0
 	csrr	t1, CSR_MHARTID
 	bnez	t1, goto_sleep
-
-	# Save l2 setting, flush and disable l2 by core 0
-	mv	t0, t4
-	lw	t0, 8(t0)	# l2c base + 0x8: l2c control register offset
-	PUSH(t0)
 
 	mv	t0, t4
 	li	t2, 0x10
