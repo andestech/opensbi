@@ -157,6 +157,8 @@ static void sbi_boot_print_hart(struct sbi_scratch *scratch, u32 hartid)
 		   sbi_hart_pmp_addrbits(scratch));
 	sbi_printf("Boot HART MHPM Count      : %d\n",
 		   sbi_hart_mhpm_count(scratch));
+	sbi_printf("Boot HART MHPM Bits       : %d\n",
+		   sbi_hart_mhpm_bits(scratch));
 	sbi_hart_delegation_dump(scratch, "Boot HART ", "         ");
 }
 
