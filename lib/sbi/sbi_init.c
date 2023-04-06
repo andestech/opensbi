@@ -188,6 +188,8 @@ static void sbi_boot_print_hart(struct sbi_scratch *scratch, u32 hartid)
 		   sbi_hart_mhpm_mask(scratch));
 	sbi_printf("Boot HART Debug Triggers  : %d triggers\n",
 		   sbi_dbtr_get_total_triggers());
+	sbi_printf("Boot HART MHPM Bits       : %d\n",
+		   sbi_hart_mhpm_bits(scratch));
 	sbi_hart_delegation_dump(scratch, "Boot HART ", "         ");
 }
 
