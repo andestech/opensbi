@@ -18,7 +18,11 @@
 #include <sbi_utils/irqchip/plic.h>
 
 #define DEFAULT_UART_FREQ		0
+#ifdef CONFIG_PLATFORM_ANDES_AE350
+#define DEFAULT_UART_BAUD		38400
+#else
 #define DEFAULT_UART_BAUD		115200
+#endif
 #define DEFAULT_UART_REG_SHIFT		0
 #define DEFAULT_UART_REG_IO_WIDTH	1
 #define DEFAULT_UART_REG_OFFSET		0
