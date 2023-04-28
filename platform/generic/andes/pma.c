@@ -344,8 +344,5 @@ int mcall_free_pma(unsigned long va)
 		return 0;
 	}
 
-	sbi_printf("ERROR %s(): failed to free the PMA entry used by %#lx\n",
-		   __func__, va);
-
-	return SBI_ENOENT;
+	return 0;
 }

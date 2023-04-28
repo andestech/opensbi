@@ -50,8 +50,7 @@ int mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size);
  * Free a PMA entry
  * @param va virtual address, the associated PMA entry of the va will be freed
  *
- * @return 0 on success
- * @return SBI_ENOENT if entry not found
+ * @return 0 whether on success or fail
  */
 int mcall_free_pma(unsigned long va);
 
