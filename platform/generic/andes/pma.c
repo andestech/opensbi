@@ -14,15 +14,37 @@
 #include <sbi/sbi_bitops.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_error.h>
+#include <sbi/sbi_platform.h>
 #include <sbi/sbi_types.h>
 #include <andes/andesv5.h>
 #include <andes/pma.h>
 
-/*
- * pma_user_table[] keeps track of which PMA entry is being used,
- * 0 indicates that it is unused and can be allocated.
- */
-unsigned long pma_user_table[PMA_ENTRY_NR] = { 0 };
+static unsigned long pma_features_offset;
+
+static inline virtual_addr_t get_pma_table(int pma_idx)
+{
+	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
+	struct andes_pma_data *pma_data =
+		sbi_scratch_offset_ptr(scratch, pma_features_offset);
+
+	if (!pma_data)
+		return 0;
+
+	return pma_data->pma_user_table[pma_idx];
+}
+
+static inline int set_pma_table(int pma_idx, virtual_addr_t va)
+{
+	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
+	struct andes_pma_data *pma_data =
+		sbi_scratch_offset_ptr(scratch, pma_features_offset);
+
+	if (!pma_data)
+		return SBI_EINVAL;
+
+	pma_data->pma_user_table[pma_idx] = va;
+	return SBI_OK;
+}
 
 static void andes_pma_write_num(int csr_num, unsigned long val)
 {
@@ -134,7 +156,7 @@ static bool is_va_alias(unsigned long va)
 	 * pma_user_table[]
 	 */
 	for (int i = 0; i < PMA_ENTRY_NR; i++) {
-		if (pma_user_table[i] != va)
+		if (get_pma_table(i) != va)
 			continue;
 		sbi_printf("ERROR %s(): va %#lx conflicts\n", __func__,
 			  va);
@@ -159,7 +181,7 @@ static int allocate_pma_entry(unsigned long va, int *entry_id)
 	for (int i = 0; i < PMA_ENTRY_NR; i++) {
 		if (pmaxcfg_etyp(i) != PMACFG_ETYP_OFF)
 			continue;
-		pma_user_table[i] = va;
+		set_pma_table(i, va);
 		*entry_id	  = i;
 		return SBI_SUCCESS;
 	}
@@ -268,7 +290,7 @@ int mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size)
 		sbi_printf(
 			"ERROR %s(): PMA region overlaps with PMA%d used by va=%#lx\n",
 			__func__, conflict_id,
-			pma_user_table[conflict_id]);
+			get_pma_table(conflict_id));
 		goto fail;
 	}
 
@@ -319,7 +341,7 @@ int mcall_free_pma(unsigned long va)
 	char *pmaxcfg;
 
 	for (int i = 0; i < PMA_ENTRY_NR; i++) {
-		if (pma_user_table[i] != va)
+		if (get_pma_table(i) != va)
 			continue;
 
 		if (pmaxcfg_etyp(i) == PMACFG_ETYP_OFF)
@@ -351,4 +373,17 @@ int mcall_free_pma(unsigned long va)
 	}
 
 	return 0;
+}
+
+int pma_init(void)
+{
+	/*
+	 * Allocate PMA mapping table in every hart's scratch region
+	 */
+	pma_features_offset = sbi_scratch_alloc_offset(
+					sizeof(struct andes_pma_data));
+	if (!pma_features_offset)
+		return SBI_ENOMEM;
+
+	return SBI_OK;
 }

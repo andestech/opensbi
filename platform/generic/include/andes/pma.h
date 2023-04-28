@@ -27,6 +27,14 @@
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
+struct andes_pma_data {
+    /*
+    * pma_user_table[] keeps track of which PMA entry is being used,
+    * 0 indicates that it is unused and can be allocated.
+    */
+    virtual_addr_t pma_user_table[PMA_ENTRY_NR];
+};
+
 /**
  * Check if hardware support PPMA
  */
@@ -53,6 +61,14 @@ int mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size);
  * @return 0 whether on success or fail
  */
 int mcall_free_pma(unsigned long va);
+
+/**
+ * Allocate PMA mapping table in every hart's scratch region
+ *
+ * @return SBI_OK on success
+ * @return SBI_ENOMEM if scratch region is full
+ */
+int pma_init(void);
 
 #endif /* __ASSEMBLER__ */
 #endif /* _ANDES_PMA_H */
