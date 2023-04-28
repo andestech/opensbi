@@ -327,8 +327,7 @@ int mcall_free_pma(unsigned long va)
 				"ERROR %s(): expecting PMA%d is enabled for %#lx\n",
 				__func__, i, va);
 
-		/* Free the entry */
-		pma_user_table[i] = 0x0;
+		/* Free $pmacfg */
 #if __riscv_xlen == 64
 		pma_cfg	   = CSR_PMACFG0 + ((i / 8) ? 2 : 0);
 		pmacfg_val = andes_pma_read_num(pma_cfg);
@@ -341,6 +340,13 @@ int mcall_free_pma(unsigned long va)
 		*pmaxcfg   = PMACFG_ETYP_OFF;
 #endif
 		andes_pma_write_num(pma_cfg, pmacfg_val);
+
+		/* Free $pmaaddrx */
+		andes_pma_write_num(CSR_PMAADDR0 + i, 0x0);
+
+		/* Free the entry */
+		set_pma_table(i, 0x0);
+
 		return 0;
 	}
 
