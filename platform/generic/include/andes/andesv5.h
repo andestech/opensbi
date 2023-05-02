@@ -278,4 +278,14 @@
 #define V5_L2C_CTL_DRAMOCTL_MASK    (3UL << V5_L2C_CTL_DRAMOCTL_OFFSET)
 #define V5_L2C_CTL_DRAMICTL_MASK    (1UL << V5_L2C_CTL_DRAMICTL_OFFSET)
 
+#ifndef __ASSEMBLER__
+
+#define is_andes(series)				\
+({							\
+	char value = csr_read(CSR_MARCHID) & 0xff;	\
+	(series) == (value >> 4) * 10 + (value & 0x0f);	\
+})
+
+#endif /* __ASSEMBLER__ */
+
 #endif /* _ANDESV5_H_ */
