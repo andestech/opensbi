@@ -383,9 +383,3 @@ int ae350_fdt_add_pmu(void)
 	return fdt_add_pmu(andes_hw_evt_selects, andes_hw_evt_counters,
 				andes_raw_evt_counters);
 }
-
-bool andes_hpm(void)
-{
-	return !!((csr_read(CSR_MMSC_CFG) & CSR_MMSC_CFG_PMNDS_MASK)
-			&& misa_extension('S'));
-}

@@ -85,12 +85,24 @@
   __tmp = (__tinfo & (1 << type));		\
   __tmp; })					\
 
-void trigger_init(void);
-unsigned long mcall_set_trigger(long type, uintptr_t data, unsigned int m, unsigned int s, unsigned int u);
-
 struct trigger_module {
   int type;
   int used;
 };
+
+#ifdef CONFIG_ANDES_TRIGGER
+
+void trigger_init(void);
+unsigned long mcall_set_trigger(long type, uintptr_t data, unsigned int m, unsigned int s, unsigned int u);
+
+#else
+
+static inline void trigger_init(void) { }
+static inline unsigned long mcall_set_trigger(long type, uintptr_t data, unsigned int m, unsigned int s, unsigned int u)
+{
+	return -1;
+}
+
+#endif /* CONFIG_ANDES_TRIGGER */
 
 #endif /* _AE350_TRIGGER_H */

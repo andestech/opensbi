@@ -1,14 +1,19 @@
 /*
  * SPDX-License-Identifier: BSD-2-Clause
  *
+ * Copyright (C) 2023 Renesas Electronics Corp.
  * Copyright (c) 2023 Andes Technology Corporation
  *
+ * Authors:
+ *   Lad Prabhakar <prabhakar.mahadev-lad.rj@bp.renesas.com>
+ *   Yu Chien Peter Lin <peterlin@andestech.com>
  */
 
-#ifndef _ANDES_AE350_H_
-#define _ANDES_AE350_H_
+#ifndef _ANDES_SBI_H_
+#define _ANDES_SBI_H_
 
-#ifndef __ASSEMBLER__
+#include <sbi/sbi_trap.h>
+#include <sbi_utils/fdt/fdt_helper.h>
 
 enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_GET_MCACHE_CTL_STATUS = 0,
@@ -37,6 +42,11 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_DCACHE_WBINVAL_ALL,
 	SBI_EXT_ANDES_HPM,
 };
-#endif /* __ASSEMBLER__ */
 
-#endif /* _ANDES_AE350_H_ */
+int andes_sbi_vendor_ext_provider(long extid, long funcid,
+				  const struct sbi_trap_regs *regs,
+				  unsigned long *out_value,
+				  struct sbi_trap_info *out_trap,
+				  const struct fdt_match *match);
+
+#endif /* _ANDES_SBI_H_ */

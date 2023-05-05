@@ -85,6 +85,5 @@
 #define	REPLAY_LAS_SAS	0x32
 
 int ae350_fdt_add_pmu(void);
-bool andes_hpm(void);
 
 #endif /* PMU_H */

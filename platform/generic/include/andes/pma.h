@@ -12,6 +12,8 @@
 #ifndef _ANDES_PMA_H
 #define _ANDES_PMA_H
 
+#include <sbi/sbi_error.h>
+
 #define CSR_PMAADDR0 0xBD0
 #define CSR_PMACFG0 0xBC0
 
@@ -27,6 +29,8 @@
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
+#ifdef CONFIG_ANDES_PMA
+
 struct andes_pma_data {
     /*
     * pma_user_table[] keeps track of which PMA entry is being used,
@@ -37,6 +41,8 @@ struct andes_pma_data {
 
 /**
  * Check if hardware support PPMA
+ * @return true if PPMA is supported
+ * @return false if PPMA is not supported
  */
 bool mcall_probe_pma(void);
 
@@ -70,5 +76,23 @@ int mcall_free_pma(unsigned long va);
  */
 int pma_init(void);
 
+#else
+
+static inline bool mcall_probe_pma(void) {
+	return false;
+}
+static inline int mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size) {
+	return SBI_ENOTSUPP;
+}
+static inline int mcall_free_pma(unsigned long va) {
+	return SBI_ENOTSUPP;
+}
+static inline int pma_init(void) {
+	return SBI_ENOTSUPP;
+}
+
+#endif /* CONFIG_ANDES_PMA */
+
 #endif /* __ASSEMBLER__ */
+
 #endif /* _ANDES_PMA_H */
