@@ -8,8 +8,6 @@
 #ifndef _ANDES_AE350_H_
 #define _ANDES_AE350_H_
 
-#define AE350_HART_COUNT_MAX    8
-
 #ifndef __ASSEMBLER__
 
 enum sbi_ext_andes_fid {

@@ -13,8 +13,6 @@
 #include <sbi/sbi_types.h>
 #include <sbi/riscv_asm.h>
 
-#define CSR_TINFO 0x7a4
-
 #define TRIGGER_MAX	16
 
 #define TRIGGER_TYPE_NOT_EXIST 		0UL

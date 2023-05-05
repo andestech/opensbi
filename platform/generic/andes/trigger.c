@@ -10,8 +10,8 @@
 #include <sbi/riscv_locks.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/sbi_console.h>
+#include <andes/andesv5.h>
 #include <andes/trigger.h>
-#include <andes/ae350.h>
 
 /* Record the status of trigger used by M-mode */
 static struct trigger_module trigger_modules[][TRIGGER_MAX] = {
