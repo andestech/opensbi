@@ -9,6 +9,7 @@
 
 #include <platform_override.h>
 #include <andes/andes_pmu.h>
+#include <sbi_utils/cache/fdt_cache.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/sys/atcsmu.h>
@@ -113,6 +114,7 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 	pma_init();
 	ae350_hsm_device_init();
 	trigger_init();
+	fdt_cache_init();
 
 	return 0;
 }

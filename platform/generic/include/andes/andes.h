@@ -60,6 +60,8 @@
 #define CSR_MMSC_CFG2		0xfc3
 #define CSR_MVEC_CFG		0xfc7
 #define CSR_MMSC_CFG_PFT_MASK	(1 << 4)
+#define CSR_MMSC_CFG_L2C_MASK	(1UL << 46)
+#define CSR_MMSC_CFG2_L2C_MASK	(1UL << 14)
 
 /* Counter Related Registers */
 #define CSR_MCOUNTERWEN		0x7ce
