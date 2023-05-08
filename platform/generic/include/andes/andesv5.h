@@ -113,6 +113,8 @@
 
 #define CSR_MMSC_CFG_PMNDS_MASK (1 << 15)
 #define CSR_MMSC_CFG_PPMA_MASK (1 << 30)
+#define CSR_MMSC_CFG_L2C_MASK  (1UL << 46)
+#define CSR_MMSC_CFG2_L2C_MASK (1UL << 14)
 
 /* Performance monitor */
 #define IRQ_M_PMU	18
