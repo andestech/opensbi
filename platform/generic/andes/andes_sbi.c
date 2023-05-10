@@ -13,6 +13,7 @@
 #include <sbi/sbi_types.h>
 #include <andes/andes_pma.h>
 #include <andes/trigger.h>
+#include <sbi_utils/cache/cache.h>
 
 enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_FID0 = 0, /* Reserved for future use */
@@ -23,6 +24,7 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_PMA_SET,
 	SBI_EXT_ANDES_PMA_FREE,
 	SBI_EXT_ANDES_PMA_PROBE,
+	SBI_EXT_ANDES_DCACHE_EN,
 };
 
 static bool andes_cache_controllable(void)
@@ -42,6 +44,22 @@ static bool andes_iocp_disabled(void)
 static bool andes_apply_iocp_sw_workaround(void)
 {
 	return andes_cache_controllable() & andes_iocp_disabled();
+}
+
+static __always_inline void mcall_dcache_op(unsigned int enable)
+{
+	int rc;
+
+	if (enable) {
+		csr_set(CSR_MCACHE_CTL, MCACHE_CTL_DC_EN);
+		rc = cache_enable(); /* L2C enable */
+		if (rc && (rc != SBI_ENODEV))
+			sbi_printf("%s: WARN: L2-cache enable failed\n", __func__);
+	} else {
+		sbi_printf(
+			"%s: WARN: The use of 'disable d-cache' is deprecated.\n",
+			__func__);
+	}
 }
 
 int andes_sbi_vendor_ext_provider(long funcid,
@@ -82,6 +100,9 @@ int andes_sbi_vendor_ext_provider(long funcid,
 		break;
 	case SBI_EXT_ANDES_PMA_PROBE:
 		out->value = mcall_probe_pma();
+		break;
+	case SBI_EXT_ANDES_DCACHE_EN:
+		mcall_dcache_op(regs->a0);
 		break;
 
 	default:
