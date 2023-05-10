@@ -18,6 +18,7 @@
 #include <andes/trigger.h>
 #include <andes/andes_sbi.h>
 #include <andes/andesv5.h>
+#include <sbi_utils/cache/cache.h>
 
 static __always_inline void mcall_set_mcache_ctl(unsigned long val)
 {
@@ -31,7 +32,28 @@ static __always_inline void mcall_set_mmisc_ctl(unsigned long val)
 
 static __always_inline void mcall_dcache_wbinval_all(void)
 {
+	int rc;
+
 	csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
+	rc = cache_wbinval_all(); /* L2C wbinval all */
+	if (rc)
+		sbi_printf("%s: WARN: L2-cache wbinval_all failed\n", __func__);
+}
+
+static __always_inline void mcall_dcache_op(unsigned int enable)
+{
+	int rc;
+
+	if (enable) {
+		csr_set(CSR_MCACHE_CTL, V5_MCACHE_CTL_DC_EN);
+		rc = cache_enable(); /* L2C enable */
+		if (rc)
+			sbi_printf("%s: WARN: L2-cache enable failed\n", __func__);
+	} else {
+		sbi_printf(
+			"%s: WARN: The use of 'disable d-cache' is deprecated.\n",
+			__func__);
+	}
 }
 
 static __always_inline void mcall_set_pfm(void)
@@ -70,9 +92,10 @@ int andes_sbi_vendor_ext_provider(long extid, long funcid,
 	case SBI_EXT_ANDES_DCACHE_WBINVAL_ALL:
 		mcall_dcache_wbinval_all();
 		break;
-
-	case SBI_EXT_ANDES_ICACHE_OP:
 	case SBI_EXT_ANDES_DCACHE_OP:
+		mcall_dcache_op(regs->a0);
+		break;
+	case SBI_EXT_ANDES_ICACHE_OP:
 	case SBI_EXT_ANDES_L1CACHE_I_PREFETCH:
 	case SBI_EXT_ANDES_L1CACHE_D_PREFETCH:
 	case SBI_EXT_ANDES_NON_BLOCKING_LOAD_STORE:

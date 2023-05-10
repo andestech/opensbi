@@ -12,4 +12,5 @@ config ANDES_SBI
 	bool "Andes SBI support"
 	select ANDES_TRIGGER
 	select ANDES_PMA
+	select FDT_CACHE
 	default n
