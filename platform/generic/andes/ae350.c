@@ -29,6 +29,7 @@ extern void __ae350_disable_coherency(void);
 static int ae350_hart_start(u32 hartid, ulong saddr)
 {
 	/* Don't send wakeup command at boot-time */
+	/* Andes AX25MP hart0 shares power domain with L2-cache, simply send ipi to wakeup hart0 */
 	if (!sbi_init_count(hartid) || (is_andes(25) && hartid == 0))
 		return sbi_ipi_raw_send(hartid);
 
