@@ -32,6 +32,15 @@ struct cache {
 	 * @return 0 on success and negative error code on failure
 	 */
 	int (*wbinval_all)(void);
+
+	/*
+	 * L2C HPM helpers (Andes-specific)
+	 */
+	int (*read_hpm_ctr)(u64 *);
+	int (*write_hpm_ctr)(u64);
+	int (*start_hpm)(u32);
+	int (*stop_hpm)(void);
+	bool (*hpm_idle)(void);
 };
 
 /** Register a cache controller */
@@ -45,5 +54,14 @@ int cache_disable(void);
 
 /** Write back invalidate all cache lines */
 int cache_wbinval_all(void);
+
+/*
+ * L2C HPM helpers (Andes-specific)
+ */
+int cache_read_hpm_ctr(u64 *);
+int cache_write_hpm_ctr(u64);
+int cache_start_hpm(u32);
+int cache_stop_hpm(void);
+bool cache_hpm_idle(void);
 
 #endif /* __CACHE_H__ */

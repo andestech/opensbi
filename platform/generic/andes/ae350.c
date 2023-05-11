@@ -16,10 +16,12 @@
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_init.h>
+#include <sbi/sbi_pmu.h>
 #include <andes/andesv5.h>
 #include <andes/andes_sbi.h>
 #include <andes/pma.h>
 #include <andes/pmu.h>
+#include <andes/l2c_hpm.h>
 #include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
@@ -114,6 +116,15 @@ static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
 	return 0;
 }
 
+const struct sbi_pmu_device ae350_pmu = {
+	.name			= "andes_pmu",
+	.fw_event_validate_code = ae350_fw_event_validate_code,
+	.fw_counter_match_code	= ae350_fw_counter_match_code,
+	.fw_counter_read_value	= ae350_fw_counter_read_value,
+	.fw_counter_start	= ae350_fw_counter_start,
+	.fw_counter_stop	= ae350_fw_counter_stop,
+};
+
 static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 {
 	if (!cold_boot)
@@ -123,6 +134,7 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 	ae350_hsm_device_init();
 	trigger_init();
 	fdt_cache_init();
+	sbi_pmu_set_device(&ae350_pmu);
 
 	return 0;
 }

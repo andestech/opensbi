@@ -54,3 +54,56 @@ int cache_wbinval_all(void)
 
 	return cache->wbinval_all();
 }
+
+/*
+ * L2C HPM helpers (Andes-specific)
+ */
+int cache_read_hpm_ctr(u64 *out_val)
+{
+	if (!cache)
+		return SBI_EINVAL;
+	if (!cache->read_hpm_ctr)
+		return SBI_ENOSYS;
+
+	return cache->read_hpm_ctr(out_val);
+}
+
+int cache_write_hpm_ctr(u64 val)
+{
+	if (!cache)
+		return SBI_EINVAL;
+	if (!cache->write_hpm_ctr)
+		return SBI_ENOSYS;
+
+	return cache->write_hpm_ctr(val);
+}
+
+int cache_start_hpm(u32 event_idx_code)
+{
+	if (!cache)
+		return SBI_EINVAL;
+	if (!cache->start_hpm)
+		return SBI_ENOSYS;
+
+	return cache->start_hpm(event_idx_code);
+}
+
+int cache_stop_hpm(void)
+{
+	if (!cache)
+		return SBI_EINVAL;
+	if (!cache->stop_hpm)
+		return SBI_ENOSYS;
+
+	return cache->stop_hpm();
+}
+
+bool cache_hpm_idle(void)
+{
+	if (!cache)
+		return false;
+	if (!cache->hpm_idle)
+		return false;
+
+	return cache->hpm_idle();
+}
