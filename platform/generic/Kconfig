@@ -49,8 +49,4 @@ config PLATFORM_SIFIVE_FU740
 
 source "$(OPENSBI_SRC_DIR)/platform/generic/andes/Kconfig"
 
-config ANDES_PMU
-	bool "Andes PMU support"
-	default n
-
 endif
