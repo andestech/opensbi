@@ -410,6 +410,22 @@ static void ae350_hw_counter_disable_irq(uint32_t ctr_idx)
 	csr_clear(CSR_MCOUNTERINTEN, BIT(ctr_idx));
 }
 
+static void ae350_hw_counter_filter_mode(unsigned long flags, int ctr_idx)
+{
+	if (!flags) {
+		csr_write(CSR_MCOUNTERMASK_S, 0);
+		csr_write(CSR_MCOUNTERMASK_U, 0);
+	}
+	if (flags & SBI_PMU_CFG_FLAG_SET_UINH) {
+		csr_clear(CSR_MCOUNTERMASK_S, BIT(ctr_idx));
+		csr_set(CSR_MCOUNTERMASK_U, BIT(ctr_idx));
+	}
+	if (flags & SBI_PMU_CFG_FLAG_SET_SINH) {
+		csr_set(CSR_MCOUNTERMASK_S, BIT(ctr_idx));
+		csr_clear(CSR_MCOUNTERMASK_U, BIT(ctr_idx));
+	}
+}
+
 static struct sbi_pmu_device ae350_pmu = {
 	.name	= "andes_pmu",
 	.fw_event_validate_code = ae350_fw_event_validate_code,
@@ -423,7 +439,8 @@ static struct sbi_pmu_device ae350_pmu = {
 	 */
 	.hw_counter_enable_irq = NULL,
 	.hw_counter_disable_irq = NULL,
-	.hw_counter_irq_bit = NULL
+	.hw_counter_irq_bit = NULL,
+	.hw_counter_filter_mode = NULL
 };
 
 int ae350_pmu_init(bool cold_boot)
@@ -456,6 +473,7 @@ int ae350_pmu_init(bool cold_boot)
 		 * hence hw_counter_irq_bit is unimplemented.
 		 */
 		ae350_pmu.hw_counter_irq_bit = NULL;
+		ae350_pmu.hw_counter_filter_mode = ae350_hw_counter_filter_mode;
 	}
 
 	sbi_pmu_set_device(&ae350_pmu);
