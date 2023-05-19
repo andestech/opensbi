@@ -139,13 +139,13 @@ static int andes_l2c_init(void *fdt, int nodeoff, const struct fdt_match *match)
 #endif
 			sbi_printf(
 				"%s: WARNING: The Andes platform doesn't support L2C, the l2-cache@%lx node should not be valid.\n",
-				__func__, addr);
+				__func__, (unsigned long)addr);
 			return SBI_ENODEV;
 		}
 	}
 
 	l2c.addr = (unsigned long)addr;
-	if (readl((void *)(addr + L2C_REG_CFG_OFFSET)) & MEM_MAP_MSK) {
+	if (readl((void *)(l2c.addr + L2C_REG_CFG_OFFSET)) & MEM_MAP_MSK) {
 		/* v1 memory map (Gen2) */
 		l2c.cmd_stride	      = 0x1000;
 		l2c.status_stride     = 0x1000;
