@@ -120,6 +120,7 @@
 #define IRQ_M_PMU	18
 #define CSR_SLIP_PMOVI_MASK	(1 << IRQ_M_PMU)
 #define CSR_MIE_PMOVI_MASK	(1 << IRQ_M_PMU)
+#define MIP_PMOVI	(1 << IRQ_M_PMU)
 
 /* marchid microid */
 #define CSR_MARCHID_MICROID 0xfff
