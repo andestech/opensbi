@@ -10,9 +10,6 @@
 #ifndef __PMU_H__
 #define __PMU_H__
 
-#include <sbi/sbi_ecall_interface.h>
-#include <sbi_utils/fdt/fdt_fixup.h>
-
 #define	MCOUNTER3	(1 << 3)
 #define	MCOUNTER4	(1 << 4)
 #define	MCOUNTER5	(1 << 5)
@@ -84,6 +81,6 @@
 /* LAS: load after store, SAS: store after store */
 #define	REPLAY_LAS_SAS	0x32
 
-int ae350_fdt_add_pmu(void);
+int ae350_pmu_init(bool cold_boot);
 
 #endif /* PMU_H */

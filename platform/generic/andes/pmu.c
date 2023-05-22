@@ -9,8 +9,14 @@
  */
 
 #include <sbi/riscv_asm.h>
+#include <sbi/sbi_bitops.h>
+#include <sbi/sbi_ecall_interface.h>
+#include <sbi/sbi_hart.h>
+#include <sbi/sbi_pmu.h>
 #include <sbi/sbi_types.h>
+#include <sbi_utils/fdt/fdt_fixup.h>
 #include <andes/andesv5.h>
+#include <andes/l2c_hpm.h>
 #include <andes/pmu.h>
 
 static const struct hw_evt_select andes_hw_evt_selects[] = {
@@ -378,8 +384,35 @@ static const struct raw_evt_counter andes_raw_evt_counters[] = {
 	{ /* sentinel */ }
 };
 
-int ae350_fdt_add_pmu(void)
+static int ae350_fdt_add_pmu(void)
 {
 	return fdt_add_pmu(andes_hw_evt_selects, andes_hw_evt_counters,
 				andes_raw_evt_counters);
+}
+
+
+static struct sbi_pmu_device ae350_pmu = {
+	.name	= "andes_pmu",
+	.fw_event_validate_code = ae350_fw_event_validate_code,
+	.fw_counter_match_code   = ae350_fw_counter_match_code,
+	.fw_counter_read_value = ae350_fw_counter_read_value,
+	.fw_counter_start = ae350_fw_counter_start,
+	.fw_counter_stop = ae350_fw_counter_stop,
+};
+
+int ae350_pmu_init(bool cold_boot)
+{
+	int rc;
+
+	if (!cold_boot)
+		return 0;
+
+
+	sbi_pmu_set_device(&ae350_pmu);
+
+	rc = ae350_fdt_add_pmu();
+	if (rc)
+		return rc;
+
+	return 0;
 }

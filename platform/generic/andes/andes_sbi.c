@@ -62,12 +62,6 @@ static __always_inline void mcall_set_pfm(void)
 	csr_set(CSR_MIE, CSR_MIE_PMOVI_MASK);
 }
 
-static __always_inline bool andes_hpm(void)
-{
-	return !!((csr_read(CSR_MMSC_CFG) & CSR_MMSC_CFG_PMNDS_MASK)
-			&& misa_extension('S'));
-}
-
 int andes_sbi_vendor_ext_provider(long extid, long funcid,
 				  const struct sbi_trap_regs *regs,
 				  unsigned long *out_value,

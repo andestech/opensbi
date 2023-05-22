@@ -288,6 +288,13 @@
 	(series) == (value >> 4) * 10 + (value & 0x0f);	\
 })
 
+#define andes_hpm()					\
+({							\
+	(((csr_read(CSR_MMSC_CFG) &			\
+	   CSR_MMSC_CFG_PMNDS_MASK)			\
+	  && misa_extension('S')) ? true : false);	\
+})
+
 #endif /* __ASSEMBLER__ */
 
 #endif /* _ANDESV5_H_ */
