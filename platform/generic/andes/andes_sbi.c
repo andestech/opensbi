@@ -56,12 +56,6 @@ static __always_inline void mcall_dcache_op(unsigned int enable)
 	}
 }
 
-static __always_inline void mcall_set_pfm(void)
-{
-	csr_clear(CSR_SLIP, CSR_SLIP_PMOVI_MASK);
-	csr_set(CSR_MIE, CSR_MIE_PMOVI_MASK);
-}
-
 int andes_sbi_vendor_ext_provider(long extid, long funcid,
 				  const struct sbi_trap_regs *regs,
 				  unsigned long *out_value,
@@ -94,14 +88,12 @@ int andes_sbi_vendor_ext_provider(long extid, long funcid,
 	case SBI_EXT_ANDES_L1CACHE_D_PREFETCH:
 	case SBI_EXT_ANDES_NON_BLOCKING_LOAD_STORE:
 	case SBI_EXT_ANDES_WRITE_AROUND:
+	case SBI_EXT_ANDES_SET_PFM:
 		sbi_panic("%s(): deprecated cache SBI call (funcid: %#lx)\n",
 			  __func__, funcid);
 		break;
 	case SBI_EXT_ANDES_TRIGGER:
 		*out_value = mcall_set_trigger(regs->a0, regs->a1, 0, 0, regs->a2);
-		break;
-	case SBI_EXT_ANDES_SET_PFM:
-		mcall_set_pfm();
 		break;
 	case SBI_EXT_ANDES_READ_POWERBRAKE:
 		*out_value = csr_read(CSR_MPFT_CTL);

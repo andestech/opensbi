@@ -117,10 +117,7 @@
 #define CSR_MMSC_CFG2_L2C_MASK (1UL << 14)
 
 /* Performance monitor */
-#define IRQ_M_PMU	18
-#define CSR_SLIP_PMOVI_MASK	(1 << IRQ_M_PMU)
-#define CSR_MIE_PMOVI_MASK	(1 << IRQ_M_PMU)
-#define MIP_PMOVI	(1 << IRQ_M_PMU)
+#define MIP_PMOVI (1 << 18)
 
 /* marchid microid */
 #define CSR_MARCHID_MICROID 0xfff
