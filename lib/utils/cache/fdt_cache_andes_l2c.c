@@ -117,6 +117,12 @@ static int andes_l2c_wbinval_all(void)
 	return 0;
 }
 
+static int andes_l2c_get_addr(unsigned long *addr)
+{
+	*addr = l2c.addr;
+	return 0;
+}
+
 static int andes_l2c_read_hpm_ctr(u64 *out_val)
 {
 	u32 vall = readl((void *)(l2c.addr + L2C_REG_C0_HPM_OFFSET));
@@ -180,6 +186,7 @@ static bool andes_l2c_hpm_idle(void)
 static struct cache andes_l2c = {
 	.enable	     = andes_l2c_enable,
 	.wbinval_all = andes_l2c_wbinval_all,
+	.get_addr    = andes_l2c_get_addr,
 	/*
 	 * L2C HPM helpers (Andes-specific)
 	 */

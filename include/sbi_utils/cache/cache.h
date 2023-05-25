@@ -10,6 +10,8 @@
 #ifndef __CACHE_H__
 #define __CACHE_H__
 
+#ifndef __ASSEMBLER__
+
 #include <sbi/sbi_types.h>
 
 /** Representation of a cache controller */
@@ -32,6 +34,12 @@ struct cache {
 	 * @return 0 on success and negative error code on failure
 	 */
 	int (*wbinval_all)(void);
+	/**
+	 * Get cache base address
+	 *
+	 * @return NULL if cache does not exist, else return cache base address
+	 */
+	int (*get_addr)(unsigned long *addr);
 
 	/*
 	 * L2C HPM helpers (Andes-specific)
@@ -55,6 +63,9 @@ int cache_disable(void);
 /** Write back invalidate all cache lines */
 int cache_wbinval_all(void);
 
+/** Get the base address of cache */
+int cache_get_addr(unsigned long *addr);
+
 /*
  * L2C HPM helpers (Andes-specific)
  */
@@ -63,5 +74,7 @@ int cache_write_hpm_ctr(u64);
 int cache_start_hpm(u32);
 int cache_stop_hpm(void);
 bool cache_hpm_idle(void);
+
+#endif /* __ASSEMBLER__ */
 
 #endif /* __CACHE_H__ */

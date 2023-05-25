@@ -55,6 +55,16 @@ int cache_wbinval_all(void)
 	return cache->wbinval_all();
 }
 
+int cache_get_addr(unsigned long *addr)
+{
+	if (!cache)
+		return SBI_EINVAL;
+	if (!cache->get_addr)
+		return SBI_ENOSYS;
+
+	return cache->get_addr(addr);
+}
+
 /*
  * L2C HPM helpers (Andes-specific)
  */
