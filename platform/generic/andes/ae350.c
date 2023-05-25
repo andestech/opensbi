@@ -28,64 +28,8 @@ struct smu_data smu = { 0 };
 
 extern void __ae350_enable_coherency_warmboot(void);
 extern void __ae350_disable_coherency(void);
-
-static int ae350_hart_start(u32 hartid, ulong saddr)
-{
-	/* Don't send wakeup command at boot-time */
-	/* Andes AX25MP hart0 shares power domain with L2-cache, simply send ipi to wakeup hart0 */
-	if (!sbi_init_count(hartid) || (is_andes(25) && hartid == 0))
-		return sbi_ipi_raw_send(hartid);
-
-	/* Write wakeup command to the sleep hart */
-	smu_set_command(&smu, WAKEUP_CMD, hartid);
-
-	return 0;
-}
-
-static int ae350_hart_stop(void)
-{
-	int rc;
-	u32 hartid = current_hartid();
-
-	/**
-	 * For Andes AX25MP, the hart0 shares power domain with
-	 * L2-cache, instead of turning it off, it should fall
-	 * through and jump to warmboot_addr.
-	 */
-	if (is_andes(25) && hartid == 0)
-		return SBI_ENOTSUPP;
-
-	if (!smu_support_sleep_mode(&smu, DEEPSLEEP_MODE, hartid))
-		return SBI_ENOTSUPP;
-
-	/**
-	 * disable all events, the current hart will be
-	 * woken up from reset vector when other hart
-	 * writes its PCS (power control slot) control
-	 * register
-	 */
-	smu_set_wakeup_events(&smu, 0x0, hartid);
-	smu_set_command(&smu, DEEP_SLEEP_CMD, hartid);
-
-	rc = smu_set_reset_vector(&smu, (ulong)__ae350_enable_coherency_warmboot,
-			       hartid);
-	if (rc)
-		goto fail;
-
-	__ae350_disable_coherency();
-
-	wfi();
-
-fail:
-	/* It should never reach here */
-	sbi_hart_hang();
-	return 0;
-}
-
 static const struct sbi_hsm_device andes_smu = {
-	.name	      = "andes_smu",
-	.hart_start   = ae350_hart_start,
-	.hart_stop    = ae350_hart_stop,
+	.name = "andes_smu",
 };
 
 static void ae350_hsm_device_init(void)
