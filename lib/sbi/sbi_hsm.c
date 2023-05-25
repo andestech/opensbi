@@ -25,6 +25,8 @@
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_console.h>
+#include <sbi_utils/sys/atcsmu.h>
+#include <andes/andes_sbi.h>
 
 static const struct sbi_hsm_device *hsm_dev = NULL;
 static unsigned long hart_data_offset;
@@ -110,6 +112,11 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 	unsigned long saved_mie;
 	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
 							    hart_data_offset);
+
+	if (ae350_suspend_mode[hartid] != 0) {
+		ae350_enter_suspend_mode(false, 1 << PCS_WAKE_MSIP_OFFSET);
+	}
+
 	/* Save MIE CSR */
 	saved_mie = csr_read(CSR_MIE);
 
@@ -278,6 +285,20 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch,
 	 */
 	if (hstate != SBI_HSM_STATE_STOPPED)
 		return SBI_EINVAL;
+
+	if (smu.addr && ae350_suspend_mode[hartid] == CpuHotplugDeepSleepMode) {
+		volatile uint32_t *PCSn_PCS_CTL =
+			(void *)(smu.addr + PCSm_CTL_OFFSET(hartid));
+		volatile uint32_t *PCSn_PCS_STATUS =
+			(void *)(smu.addr + PCSm_STATUS_OFFSET(hartid));
+
+		// wakeup core n
+		*PCSn_PCS_CTL = 0x8;
+
+		// wait for wakeup procees is done
+		while ((*PCSn_PCS_STATUS & 0x7) != 0)
+			;
+	}
 
 	init_count = sbi_init_count(hartid);
 	rscratch->next_arg1 = priv;

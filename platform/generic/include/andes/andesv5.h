@@ -24,6 +24,9 @@
 #define CSR_MMSC_CFG2       0xfc3
 #define CSR_MVEC_CFG        0xfc7
 
+#define PPMA_EN (1UL << PPMA_SHIFT)
+#define PPMA_SHIFT 30
+
 /* Crash Debug CSRs */
 #define CSR_MCRASH_STATESAVE    0xfc8
 #define CSR_MSTATUS_CRASHSAVE   0xfc9
@@ -69,6 +72,28 @@
 #define CSR_MCOUNTERMASK_S     0x7d2
 #define CSR_MCOUNTERMASK_U     0x7d3
 #define CSR_MCOUNTEROVF        0x7d4
+
+/* PMA registers*/
+#define CSR_PMACFG0 0xbc0
+#define CSR_PMACFG1 0xbc1
+#define CSR_PMACFG2 0xbc2
+#define CSR_PMACFG3 0xbc3
+#define CSR_PMAADDR0 0xbd0
+#define CSR_PMAADDR1 0xbd1
+#define CSR_PMAADDR2 0xbd2
+#define CSR_PMAADDR3 0xbd3
+#define CSR_PMAADDR4 0xbd4
+#define CSR_PMAADDR5 0xbd5
+#define CSR_PMAADDR6 0xbd6
+#define CSR_PMAADDR7 0xbd7
+#define CSR_PMAADDR8 0xbd8
+#define CSR_PMAADDR9 0xbd9
+#define CSR_PMAADDR10 0xbda
+#define CSR_PMAADDR11 0xbdb
+#define CSR_PMAADDR12 0xbdc
+#define CSR_PMAADDR13 0xbdd
+#define CSR_PMAADDR14 0xbde
+#define CSR_PMAADDR15 0xbdf
 
 /*
  * Andes V5 supervisor mode CSRs

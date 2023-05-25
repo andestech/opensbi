@@ -14,9 +14,6 @@
 
 #include <sbi/sbi_error.h>
 
-#define CSR_PMAADDR0                    0xBD0
-#define CSR_PMACFG0                     0xBC0
-
 #define PMA_ENTRY_NR                    16
 
 #define PMACFG_ETYP_SHIFT               0

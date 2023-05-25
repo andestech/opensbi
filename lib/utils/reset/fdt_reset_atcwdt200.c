@@ -44,7 +44,6 @@
 #define WDT_EN (1 << 0)
 
 static volatile char *wdt_addr = NULL;
-static struct smu_data smu = { 0 };
 
 static int ae350_system_reset_check(u32 type, u32 reason)
 {

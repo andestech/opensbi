@@ -16,6 +16,7 @@
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_init.h>
+#include <sbi/sbi_platform.h>
 #include <sbi/sbi_pmu.h>
 #include <andes/andesv5.h>
 #include <andes/andes_sbi.h>
@@ -23,7 +24,8 @@
 #include <andes/pmu.h>
 #include <andes/trigger.h>
 
-static struct smu_data smu = { 0 };
+struct smu_data smu = { 0 };
+
 extern void __ae350_enable_coherency_warmboot(void);
 extern void __ae350_disable_coherency(void);
 

@@ -43,6 +43,9 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_HPM,
 };
 
+int ae350_set_suspend_mode(u32 suspend_mode);
+int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask);
+
 int andes_sbi_vendor_ext_provider(long extid, long funcid,
 				  const struct sbi_trap_regs *regs,
 				  unsigned long *out_value,
