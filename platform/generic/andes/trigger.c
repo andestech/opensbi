@@ -101,7 +101,7 @@ static int trigger_used_by_dmode(int num)
 	int dmode;
 
 	trigger_set_tselect(num);
-	dmode = (csr_read(CSR_TDATA1) & TDATA1_OFFSET_DMOEE);
+	dmode = (csr_read(CSR_TDATA1) & TDATA1_OFFSET_DMODE);
 
 	return dmode;
 }
