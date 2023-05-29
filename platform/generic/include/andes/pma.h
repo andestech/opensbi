@@ -14,15 +14,19 @@
 
 #include <sbi/sbi_error.h>
 
-#define CSR_PMAADDR0 0xBD0
-#define CSR_PMACFG0 0xBC0
+#define CSR_PMAADDR0                    0xBD0
+#define CSR_PMACFG0                     0xBC0
 
-#define PMA_ENTRY_NR 16
-#define PMACFG_ETPY_MASK 0x3
-#define PMACFG_MTPY_MASK (0xf << 2)
-#define PMACFG_ETYP_OFF 0x0
-#define PMACFG_ETYP_NAPOT 0x3
-#define PMACFG_MTYP_NOCACHE_BUFFER 0x3
+#define PMA_ENTRY_NR                    16
+
+#define PMACFG_ETYP_SHIFT               0
+#define PMACFG_ETYP_MASK                (0x3 << PMACFG_ETYP_SHIFT)
+#define PMACFG_ETYP_OFF                 (0x0 << PMACFG_ETYP_SHIFT)
+#define PMACFG_ETYP_NAPOT               (0x3 << PMACFG_ETYP_SHIFT)
+
+#define PMACFG_MTYP_SHIFT               2
+#define PMACFG_MTYP_MASK                (0xf << PMACFG_MTYP_SHIFT)
+#define PMACFG_MTYP_NOCACHE_BUFFER      (0x3 << PMACFG_MTYP_SHIFT)
 
 #ifndef __ASSEMBLER__
 

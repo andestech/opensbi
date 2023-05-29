@@ -169,7 +169,7 @@ static u8 pmaxcfg_etyp(int entry_id)
 {
 	/* pmaxcfg.ETYP will be 0 when it is set to 1 or 2 (reserved) */
 	u8 pmaxcfg_val = read_pmaxcfg(entry_id);
-	return EXTRACT_FIELD(pmaxcfg_val, PMACFG_ETPY_MASK);
+	return EXTRACT_FIELD(pmaxcfg_val, PMACFG_ETYP_MASK);
 }
 
 static int allocate_pma_entry(unsigned long va, int *entry_id)
