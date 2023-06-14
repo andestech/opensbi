@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2022 Andes Technology Corporation
+ * Copyright (c) 2022, 2023 Andes Technology Corporation
  *
  * Authors:
  *   Zong Li <zong@andestech.com>
@@ -10,9 +10,12 @@
  *   Yu Chien Peter Lin <peterlin@andestech.com>
  */
 
+#include <andes/andesv5.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_io.h>
+#include <sbi/sbi_console.h>
 #include <sbi/sbi_domain.h>
+#include <sbi/sbi_hart.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi_utils/ipi/andes_plicsw.h>
 
@@ -44,28 +47,25 @@ static inline void plic_sw_pending(u32 target_hart)
 {
 	/*
 	 * The pending array registers are w1s type.
-	 * IPI pending array mapping as following:
 	 *
-	 * Pending array start address: base + 0x1000
-	 * ---------------------------------
-	 * | hart3 | hart2 | hart1 | hart0 |
-	 * ---------------------------------
-	 * Each hartX can send IPI to another hart by setting the
-	 * bitY to its own region (see the below).
+	 * We allocate a single bit for each hart.
+	 * Bit 0 is hardwired to 0, thus unavailable.
+	 * Bit(X+1) indicates that IPI is sent to hartX.
 	 *
-	 * In each hartX region:
-	 * <---------- PICSW_PENDING_STRIDE -------->
-	 * | bit7 | ... | bit3 | bit2 | bit1 | bit0 |
-	 * ------------------------------------------
-	 * The bitY of hartX region indicates that hartX sends an
-	 * IPI to hartY.
+	 * AE350 platform guarantees only 31 interrupt sources,
+	 * so target hart ID ranges from 0 to 30, else ebreak.
 	 */
-	u32 hartid	    = current_hartid();
-	u32 word_index	    = hartid / 4;
-	u32 per_hart_offset = PLICSW_PENDING_STRIDE * hartid;
-	u32 val		    = 1 << target_hart << per_hart_offset;
+	if (target_hart + 1 > AE350_HART_COUNT_MAX) {
+		sbi_printf("%s: Number of harts is larger than AE350_HART_COUNT_MAX (%d)\n",
+			__func__, AE350_HART_COUNT_MAX);
+		sbi_hart_hang();
+	}
 
-	writel(val, (void *)plicsw.addr + PLICSW_PENDING_BASE + word_index * 4);
+	u32 pending_reg_index = (target_hart + 1) / BITS_PER_REG;
+	u32 offset            = pending_reg_index * BYTES_PER_REG;
+	u32 val               = 1 << ((target_hart + 1) % BITS_PER_REG);
+
+	writel(val, (void *)plicsw.addr + PLICSW_PENDING_BASE + offset);
 }
 
 static void plicsw_ipi_send(u32 target_hart)
@@ -113,14 +113,13 @@ int plicsw_cold_ipi_init(struct plicsw_data *plicsw)
 	for (int i = 0; i < plicsw->hart_count; i++)
 		writel(1, &priority[i]);
 
-	/* Setup target enable */
-	uint32_t enable_mask = PLICSW_HART_MASK;
+	/* Setup target enable, bit 0 is unavailable */
+	uint32_t enable_mask = 0x2;
 
 	for (int i = 0; i < plicsw->hart_count; i++) {
 		uint32_t *enable = (void *)plicsw->addr + PLICSW_ENABLE_BASE +
 				   PLICSW_ENABLE_STRIDE * i;
 		writel(enable_mask, enable);
-		writel(enable_mask, enable + 1);
 		enable_mask <<= 1;
 	}
 

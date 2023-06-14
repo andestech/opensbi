@@ -25,11 +25,12 @@
 #define PLICSW_CONTEXT_STRIDE 0x1000
 #define PLICSW_CONTEXT_CLAIM 0x4
 
-#define PLICSW_HART_MASK 0x01010101
-
 #define PLICSW_HART_MAX_NR 8
 
 #define PLICSW_REGION_ALIGN 0x1000
+
+#define BITS_PER_REG 32
+#define BYTES_PER_REG 4
 
 struct plicsw_data {
 	unsigned long addr;
