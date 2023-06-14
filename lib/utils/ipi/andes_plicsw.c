@@ -21,28 +21,6 @@
 
 struct plicsw_data plicsw;
 
-static inline void plicsw_claim(void)
-{
-	u32 hartid = current_hartid();
-
-	if (plicsw.hart_count <= hartid)
-		ebreak();
-
-	plicsw.source_id[hartid] =
-		readl((void *)plicsw.addr + PLICSW_CONTEXT_BASE +
-		      PLICSW_CONTEXT_CLAIM + PLICSW_CONTEXT_STRIDE * hartid);
-}
-
-static inline void plicsw_complete(void)
-{
-	u32 hartid = current_hartid();
-	u32 source = plicsw.source_id[hartid];
-
-	writel(source, (void *)plicsw.addr + PLICSW_CONTEXT_BASE +
-			       PLICSW_CONTEXT_CLAIM +
-			       PLICSW_CONTEXT_STRIDE * hartid);
-}
-
 static inline void plic_sw_pending(u32 target_hart)
 {
 	/*
@@ -79,12 +57,17 @@ static void plicsw_ipi_send(u32 target_hart)
 
 static void plicsw_ipi_clear(u32 target_hart)
 {
+	u32 hartid = current_hartid();
+
 	if (plicsw.hart_count <= target_hart)
 		ebreak();
 
-	/* Clear PLICSW IPI */
-	plicsw_claim();
-	plicsw_complete();
+	/* Claim */
+	u32 source = readl((void *)plicsw.addr + PLICSW_CONTEXT_BASE +
+				PLICSW_CONTEXT_CLAIM + PLICSW_CONTEXT_STRIDE * hartid);
+	/* Complete */
+	writel(source, (void *)plicsw.addr + PLICSW_CONTEXT_BASE +
+		PLICSW_CONTEXT_CLAIM + PLICSW_CONTEXT_STRIDE * hartid);
 }
 
 static struct sbi_ipi_device plicsw_ipi = {
