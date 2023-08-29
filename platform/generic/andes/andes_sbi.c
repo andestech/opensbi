@@ -43,7 +43,7 @@ static __always_inline void mcall_dcache_wbinval_all(void)
 
 	csr_write(CSR_MCCTLCOMMAND, V5_UCCTL_L1D_WBINVAL_ALL);
 	rc = cache_wbinval_all(); /* L2C wbinval all */
-	if (rc)
+	if (rc && (rc != SBI_ENODEV))
 		sbi_printf("%s: WARN: L2-cache wbinval_all failed\n", __func__);
 }
 

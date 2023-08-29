@@ -28,7 +28,7 @@ int cache_add(struct cache *c)
 int cache_enable(void)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->enable)
 		return SBI_ENOSYS;
 
@@ -38,7 +38,7 @@ int cache_enable(void)
 int cache_disable(void)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->disable)
 		return SBI_ENOSYS;
 
@@ -48,7 +48,7 @@ int cache_disable(void)
 int cache_wbinval_all(void)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->wbinval_all)
 		return SBI_ENOSYS;
 
@@ -58,7 +58,7 @@ int cache_wbinval_all(void)
 int cache_get_addr(unsigned long *addr)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->get_addr)
 		return SBI_ENOSYS;
 
@@ -71,7 +71,7 @@ int cache_get_addr(unsigned long *addr)
 int cache_read_hpm_ctr(u64 *out_val)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->read_hpm_ctr)
 		return SBI_ENOSYS;
 
@@ -81,7 +81,7 @@ int cache_read_hpm_ctr(u64 *out_val)
 int cache_write_hpm_ctr(u64 val)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->write_hpm_ctr)
 		return SBI_ENOSYS;
 
@@ -91,7 +91,7 @@ int cache_write_hpm_ctr(u64 val)
 int cache_start_hpm(u32 event_idx_code)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->start_hpm)
 		return SBI_ENOSYS;
 
@@ -101,7 +101,7 @@ int cache_start_hpm(u32 event_idx_code)
 int cache_stop_hpm(void)
 {
 	if (!cache)
-		return SBI_EINVAL;
+		return SBI_ENODEV;
 	if (!cache->stop_hpm)
 		return SBI_ENOSYS;
 
