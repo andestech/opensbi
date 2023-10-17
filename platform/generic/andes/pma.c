@@ -158,7 +158,7 @@ static bool is_va_alias(unsigned long va)
 	for (int i = 0; i < PMA_ENTRY_NR; i++) {
 		if (get_pma_table(i) != va)
 			continue;
-		sbi_printf("ERROR %s(): va %#lx conflicts\n", __func__,
+		sbi_printf_highlight("ERROR %s(): va %#lx conflicts\n", __func__,
 			  va);
 		return true;
 	}
@@ -187,7 +187,7 @@ static int allocate_pma_entry(unsigned long va, int *entry_id)
 	}
 
 fail:
-	sbi_printf("ERROR %s(): Cannot allocate PMA entry for %#lx\n", __func__,
+	sbi_printf_highlight("ERROR %s(): Cannot allocate PMA entry for %#lx\n", __func__,
 		   va);
 	*entry_id = -1;
 
@@ -233,7 +233,7 @@ static int pmaaddrx_to_region(int entry_id, unsigned long *out_start,
 		return 0;
 	}
 
-	sbi_printf("ERROR %s(): PMA%d is not NAPOT mode (enable)\n", __func__,
+	sbi_printf_highlight("ERROR %s(): PMA%d is not NAPOT mode (enable)\n", __func__,
 		   entry_id);
 	*out_size = *out_start = -1;
 	return SBI_EINVAL;
@@ -256,7 +256,7 @@ static bool has_pma_region_conflict(unsigned long start, unsigned long size, int
 		_end = _start + _size - 1;
 
 		if (max(start, _start) <= min(end, _end)) {
-			sbi_printf("ERROR %s(): desired region %#lx - %#lx (size: %#lx) conflicts with the existing PMA%d: %#lx - %#lx (size: %#lx)\n",
+			sbi_printf_highlight("ERROR %s(): desired region %#lx - %#lx (size: %#lx) conflicts with the existing PMA%d: %#lx - %#lx (size: %#lx)\n",
 					__func__, start, end, size, i, _start, _end, _size);
 			*conflict_id = i;
 			return true;
@@ -274,20 +274,20 @@ int mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size)
 
 	/* Sanity check */
 	if (!mcall_probe_pma()) {
-		sbi_printf("ERROR %s(): platform does not support PPMA.\n",
+		sbi_printf_highlight("ERROR %s(): platform does not support PPMA.\n",
 			  __func__);
 		goto fail;
 	}
 
 	if (size < 4096 || !is_napot(pa, size)) {
-		sbi_printf("ERROR %s(): %#lx - %#lx (size: %#lx) is not a 4KiB granularity NAPOT region\n",
+		sbi_printf_highlight("ERROR %s(): %#lx - %#lx (size: %#lx) is not a 4KiB granularity NAPOT region\n",
 			  __func__, pa, pa + size - 1, size);
 		goto fail;
 	}
 
 	/* Not allow region overlapping */
 	if (has_pma_region_conflict(pa, size, &conflict_id)) {
-		sbi_printf(
+		sbi_printf_highlight(
 			"ERROR %s(): PMA region overlaps with PMA%d used by va=%#lx\n",
 			__func__, conflict_id,
 			get_pma_table(conflict_id));
@@ -322,7 +322,7 @@ int mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size)
 	andes_pma_write_num(CSR_PMAADDR0 + entry_id, pmaaddr_val);
 
 	if (andes_pma_read_num(CSR_PMAADDR0 + entry_id) != pmaaddr_val) {
-		sbi_printf(
+		sbi_printf_highlight(
 			"ERROR %s(): Failed to set the pmaaddr%d to desired value\n",
 			__func__, entry_id);
 		return SBI_EFAIL;

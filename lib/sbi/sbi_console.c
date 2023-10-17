@@ -362,6 +362,23 @@ int sbi_printf(const char *format, ...)
 	return retval;
 }
 
+int sbi_printf_highlight(const char *format, ...)
+{
+	va_list args;
+	int retval;
+	const char *highlight = "\n******************************\n\n";
+
+	spin_lock(&console_out_lock);
+	va_start(args, format);
+	print(NULL, NULL, highlight, NULL);
+	retval = print(NULL, NULL, format, args);
+	print(NULL, NULL, highlight, NULL);
+	va_end(args);
+	spin_unlock(&console_out_lock);
+
+	return retval;
+}
+
 int sbi_dprintf(const char *format, ...)
 {
 	va_list args;
