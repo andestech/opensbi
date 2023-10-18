@@ -236,11 +236,21 @@ int andes_sbi_vendor_ext_provider(long extid, long funcid,
 	case SBI_EXT_ANDES_TRIGGER:
 		*out_value = mcall_set_trigger(regs->a0, regs->a1, 0, 0, regs->a2);
 		break;
+	/*
+	 * Before accessing the mpft_ctl CSR, we need to check if the
+	 * PowerBrake feature is supported or not.
+	 */
 	case SBI_EXT_ANDES_READ_POWERBRAKE:
-		*out_value = csr_read(CSR_MPFT_CTL);
+		if (andes_powerbrake()) {
+			*out_value = csr_read(CSR_MPFT_CTL);
+		} else {
+			*out_value = 0;
+		}
 		break;
 	case SBI_EXT_ANDES_WRITE_POWERBRAKE:
-		csr_write(CSR_MPFT_CTL, regs->a0);
+		if (andes_powerbrake()) {
+			csr_write(CSR_MPFT_CTL, regs->a0);
+		}
 		break;
 	case SBI_EXT_ANDES_SET_SUSPEND_MODE:
 		ae350_set_suspend_mode(regs->a0);

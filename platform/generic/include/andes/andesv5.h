@@ -136,6 +136,7 @@
  * Andes V5 CSR encoding
  */
 
+#define CSR_MMSC_CFG_PFT_MASK (1 << 4)
 #define CSR_MMSC_CFG_PMNDS_MASK (1 << 15)
 #define CSR_MMSC_CFG_PPMA_MASK (1 << 30)
 #define CSR_MMSC_CFG_L2C_MASK  (1UL << 46)
@@ -316,6 +317,12 @@
 	(((csr_read(CSR_MMSC_CFG) &			\
 	   CSR_MMSC_CFG_PMNDS_MASK)			\
 	  && misa_extension('S')) ? true : false);	\
+})
+
+#define andes_powerbrake()				\
+({							\
+	((csr_read(CSR_MMSC_CFG) &			\
+	  CSR_MMSC_CFG_PFT_MASK) ? true : false);	\
 })
 
 #endif /* __ASSEMBLER__ */
