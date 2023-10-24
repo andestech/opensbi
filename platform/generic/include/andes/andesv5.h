@@ -11,6 +11,10 @@
 #ifndef _ANDESV5_H_
 #define _ANDESV5_H_
 
+#ifndef __ASSEMBLER__
+#include <andes/dcause.h>
+#endif
+
 #define AE350_HART_COUNT_MAX    8
 
 /*
@@ -59,6 +63,11 @@
 #define CSR_MSAVECAUSE2     0x7da
 #define CSR_MSAVEDCAUSE1    0x7db
 #define CSR_MSAVEDCAUSE2    0x7dc
+
+/* Trap/Imprecise exception causes */
+#define CAUSE_IMPRECISE_ECC		0x10
+#define CAUSE_BUS_RW_TRANSACTION	0x11
+#define CAUSE_PMOVI			0x12
 
 /* Control CSRs */
 #define CSR_MPFT_CTL        0x7c5
@@ -144,6 +153,9 @@
 
 /* Performance monitor */
 #define MIP_PMOVI (1 << 18)
+
+/* Andes mvendorid */
+#define CSR_MVENDORID_ANDES 0x31e
 
 /* marchid microid */
 #define CSR_MARCHID_MICROID 0xfff
@@ -310,6 +322,12 @@
 ({							\
 	char value = csr_read(CSR_MARCHID) & 0xff;	\
 	(series) == (value >> 4) * 10 + (value & 0x0f);	\
+})
+
+#define is_andes_cpu()					\
+({							\
+	((csr_read(CSR_MVENDORID) ==			\
+	  CSR_MVENDORID_ANDES) ? true : false);		\
 })
 
 #define andes_hpm()					\

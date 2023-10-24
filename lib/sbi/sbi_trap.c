@@ -23,6 +23,8 @@
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
 
+#include <andes/andesv5.h>
+
 static void __noreturn sbi_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
 				      ulong mtinst, struct sbi_trap_regs *regs)
@@ -71,6 +73,13 @@ static void __noreturn sbi_trap_error(const char *msg, int rc,
 		   hartid, "t4", regs->t4, "t5", regs->t5);
 	sbi_printf("%s: hart%d: %s=0x%" PRILX "\n", __func__, hartid, "t6",
 		   regs->t6);
+
+	if (is_andes_cpu()) {
+		ulong mdcause = csr_read(CSR_MDCAUSE);
+		sbi_printf("%s: hart%d: %s=0x%" PRILX "\n", __func__, hartid,
+			   "mdcause", mdcause);
+		print_detailed_cause(mcause, mdcause);
+	}
 
 	sbi_hart_hang();
 }
@@ -173,6 +182,8 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 		csr_write(CSR_STVAL, trap->tval);
 		csr_write(CSR_SEPC, trap->epc);
 		csr_write(CSR_SCAUSE, trap->cause);
+		if (is_andes_cpu())
+			csr_write(CSR_SDCAUSE, csr_read(CSR_MDCAUSE));
 
 		/* Set MEPC to S-mode exception vector base */
 		regs->mepc = csr_read(CSR_STVEC);
