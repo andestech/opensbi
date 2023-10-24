@@ -23,6 +23,7 @@
 #include <sbi/sbi_sse.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
+#include <andes/andes.h>
 
 static void sbi_trap_error_one(const struct sbi_trap_context *tcntx,
 			       const char *prefix, u32 hartid, u32 depth)
@@ -71,6 +72,13 @@ static void sbi_trap_error_one(const struct sbi_trap_context *tcntx,
 		   hartid, depth, "t4", regs->t4, "t5", regs->t5);
 	sbi_printf("%s: hart%d: trap%d: %s=0x%" PRILX "\n", prefix,
 		   hartid, depth, "t6", regs->t6);
+
+	if (is_andes_cpu()) {
+		ulong mdcause = csr_read(CSR_MDCAUSE);
+		sbi_printf("%s: hart%d: trap%d: %s=0x%" PRILX "\n", prefix,
+			   hartid, depth, "mdcause", mdcause);
+		print_detailed_cause(trap->cause, mdcause);
+	}
 }
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
@@ -189,6 +197,8 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 		csr_write(CSR_STVAL, trap->tval);
 		csr_write(CSR_SEPC, regs->mepc);
 		csr_write(CSR_SCAUSE, trap->cause);
+		if (is_andes_cpu())
+			csr_write(CSR_SDCAUSE, csr_read(CSR_MDCAUSE));
 
 		/* Set MEPC to S-mode exception vector base */
 		regs->mepc = csr_read(CSR_STVEC);

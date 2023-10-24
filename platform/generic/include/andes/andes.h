@@ -6,6 +6,10 @@
 #ifndef _RISCV_ANDES_H
 #define _RISCV_ANDES_H
 
+#ifndef __ASSEMBLER__
+#include <andes/dcause.h>
+#endif
+
 #define AE350_HART_COUNT_MAX	8
 
 /*
@@ -95,6 +99,17 @@
 #define MMSC_CFG_PMNDS_MASK		(1 << 15)
 #define MIP_PMOVI			(1 << 18)
 
+/* Trap/Imprecise exception causes */
+#define CAUSE_IMPRECISE_ECC		0x10
+#define CAUSE_BUS_RW_TRANSACTION	0x11
+#define CAUSE_PMOVI			0x12
+
+/* Andes mvendorid */
+#define CSR_MVENDORID_ANDES		0x31e
+
+/* Trap related CSR mask */
+#define CSR_MDCAUSE_MASK		0x1f
+
 #ifndef __ASSEMBLER__
 
 #define is_andes(series)				\
@@ -115,6 +130,9 @@
 	((csr_read(CSR_MMSC_CFG) &			\
 	  CSR_MMSC_CFG_PFT_MASK) ? true : false);	\
 })
+
+#define is_andes_cpu()					\
+	((csr_read(CSR_MVENDORID) == CSR_MVENDORID_ANDES) ? true : false)
 
 #endif /* __ASSEMBLER__ */
 
