@@ -151,6 +151,11 @@ enum sbi_pmu_hw_cache_op_result_id {
 	SBI_PMU_HW_CACHE_RESULT_MAX,
 };
 
+#define SBI_PMU_HW_CACHE_EVENT_IDX(id, op, res) \
+	(SBI_PMU_EVENT_TYPE_HW_CACHE << SBI_PMU_EVENT_IDX_TYPE_OFFSET | \
+	 SBI_PMU_HW_CACHE_##id << 3 | SBI_PMU_HW_CACHE_OP_##op << 1 | \
+	 SBI_PMU_HW_CACHE_RESULT_##res)
+
 /**
  * Special "firmware" events provided by the OpenSBI, even if the hardware
  * does not support performance events. These events are encoded as a raw

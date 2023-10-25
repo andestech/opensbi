@@ -18,9 +18,9 @@
 #include <sbi_utils/fdt/fdt_pmu.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 
-int fdt_add_pmu(const struct hw_evt_select *selects,
-							 const struct hw_evt_counter *counters,
-							 const struct raw_evt_counter *rcounters)
+int fdt_add_pmu(const struct sbi_pmu_event_select_map *selects,
+		const struct sbi_pmu_event_counter_map *counters,
+		const struct sbi_pmu_raw_event_counter_map *rcounters)
 {
 	int i, err, pmu_noff, soc_noff;
 	void *fdt = fdt_get_address();
@@ -42,7 +42,7 @@ int fdt_add_pmu(const struct hw_evt_select *selects,
 	if  (pmu_noff < 0)
 		return pmu_noff;
 
-	err = fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 1024);
+	err = fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 2048);
 	if (err < 0)
 		return err;
 

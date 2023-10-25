@@ -9,7 +9,7 @@
 #ifndef __FDT_FIXUP_H__
 #define __FDT_FIXUP_H__
 
-struct hw_evt_select {
+struct sbi_pmu_event_select_map {
 	/**
 	 * The description of an entry in
 	 * riscv,event-to-mhpmevent property
@@ -18,7 +18,7 @@ struct hw_evt_select {
 	uint64_t select;
 };
 
-struct hw_evt_counter {
+struct sbi_pmu_event_counter_map {
 	/**
 	 * The description of an entry in
 	 * riscv,event-to-mhpmcounters property
@@ -28,7 +28,7 @@ struct hw_evt_counter {
 	uint32_t ctr_map;
 };
 
-struct raw_evt_counter {
+struct sbi_pmu_raw_event_counter_map {
 	/**
 	 * The description of an entry in
 	 * riscv,raw-event-to-mhpmcounters property
@@ -41,15 +41,20 @@ struct raw_evt_counter {
 /**
  * Add PMU properties in the DT
  *
- * Add information about event selector and event to counter mapping to the devicetree.
+ * Add information about event to selector/counter mappings to the
+ * devicetree.
  *
- * @param fdt: device tree blob
- * @param states: array of hw event mapping descriptions, ending with empty element
+ * @param selects: array of event index to selector value mapping
+ *                 descriptions, ending with empty element
+ * @param counters: array of event indexes to counters mapping
+ *                  descriptions, ending with empty element
+ * @param rcounters: array of raw events to counters mapping
+ *                   descriptions, ending with empty element
  * @return zero on success and -ve on failure
  */
-int fdt_add_pmu(const struct hw_evt_select *selects,
-							 const struct hw_evt_counter *counters,
-							 const struct raw_evt_counter *rcounters);
+int fdt_add_pmu(const struct sbi_pmu_event_select_map *selects,
+		const struct sbi_pmu_event_counter_map *counters,
+		const struct sbi_pmu_raw_event_counter_map *rcounters);
 
 /**
  * Fix up the CPU node in the device tree
