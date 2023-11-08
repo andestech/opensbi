@@ -35,6 +35,15 @@
 	state == (oldstate);						\
 })
 
+#define __sbi_hsm_hart_change_state(hdata, oldstate, newstate)		\
+({									\
+	long state = atomic_cmpxchg(&(hdata)->state, oldstate, newstate); \
+	if (state != (oldstate))					\
+		sbi_printf("%s: ERR: The hart is in invalid state [%lu]\n", \
+			   __func__, state);				\
+	state == (oldstate);						\
+})
+
 static const struct sbi_hsm_device *hsm_dev = NULL;
 static unsigned long hart_data_offset;
 
@@ -157,7 +166,7 @@ void __noreturn sbi_hsm_hart_start_finish(struct sbi_scratch *scratch,
 	sbi_hart_switch_mode(hartid, next_arg1, next_addr, next_mode, false);
 }
 
-static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
+void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 {
 	unsigned long saved_mie;
 	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,

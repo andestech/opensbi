@@ -18,6 +18,12 @@ struct plic_data {
 	unsigned long num_src;
 };
 
+u32 plic_claim(struct plic_data *plic, u32 cntxid);
+
+void plic_complete(struct plic_data *plic, u32 cntxid, u32 source);
+
+void plic_set_ip(const struct plic_data *plic, u32 irq);
+
 /* So far, priorities on all consumers of these functions fit in 8 bits. */
 void plic_priority_save(const struct plic_data *plic, u8 *priority, u32 num);
 

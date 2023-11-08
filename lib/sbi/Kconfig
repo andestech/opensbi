@@ -50,4 +50,8 @@ config SBI_ECALL_DBTR
 	bool "Debug Trigger Extension"
 	default y
 
+config SBI_ECALL_OPTEE
+	bool "OP-TEE extension"
+	default n
+
 endmenu

@@ -24,6 +24,31 @@
 #define PLIC_CONTEXT_BASE 0x200000
 #define PLIC_CONTEXT_STRIDE 0x1000
 
+u32 plic_claim(struct plic_data *plic, u32 cntxid)
+{
+	volatile void *plic_claim;
+
+	if (!plic)
+		return 0;
+
+	plic_claim = (void *)plic->addr +
+		      PLIC_CONTEXT_BASE + PLIC_CONTEXT_STRIDE * cntxid + 4;
+
+	return readl(plic_claim);
+}
+
+void plic_complete(struct plic_data *plic, u32 cntxid, u32 source)
+{
+	volatile void *plic_complete;
+
+	if (!plic)
+		return;
+
+	plic_complete = (void *)plic->addr +
+			PLIC_CONTEXT_BASE + PLIC_CONTEXT_STRIDE * cntxid + 4;
+	writel(source, plic_complete);
+}
+
 static u32 plic_get_priority(const struct plic_data *plic, u32 source)
 {
 	volatile void *plic_priority = (char *)plic->addr +
@@ -93,6 +118,18 @@ static void plic_set_ie(const struct plic_data *plic, u32 cntxid,
 	writel(val, plic_ie);
 }
 
+void plic_set_ip(const struct plic_data *plic, u32 irq)
+{
+	volatile void *plic_ip;
+	u32 temp;
+
+	plic_ip = (char *)plic->addr + PLIC_PENDING_BASE + (irq / 32);
+
+	temp = readl(plic_ip);
+	temp |= BIT(irq % 32);
+	writel(temp, plic_ip);
+}
+
 void plic_context_save(const struct plic_data *plic, int context_id,
 		       u32 *enable, u32 *threshold, u32 num)
 {
@@ -101,8 +138,10 @@ void plic_context_save(const struct plic_data *plic, int context_id,
 	if (num > ie_words)
 		num = ie_words;
 
-	for (u32 i = 0; i < num; i++)
+	for (u32 i = 0; i < num; i++) {
 		enable[i] = plic_get_ie(plic, context_id, i);
+		plic_set_ie(plic, context_id, i, 0);
+	}
 
 	*threshold = plic_get_thresh(plic, context_id);
 }
@@ -147,14 +186,14 @@ int plic_warm_irqchip_init(const struct plic_data *plic,
 
 	/* By default, disable all IRQs for M-mode of target HART */
 	if (m_cntx_id > -1) {
-		ret = plic_context_init(plic, m_cntx_id, false, 0x7);
+		ret = plic_context_init(plic, m_cntx_id, false, 0x0);
 		if (ret)
 			return ret;
 	}
 
 	/* By default, disable all IRQs for S-mode of target HART */
 	if (s_cntx_id > -1) {
-		ret = plic_context_init(plic, s_cntx_id, false, 0x7);
+		ret = plic_context_init(plic, s_cntx_id, false, 0x0);
 		if (ret)
 			return ret;
 	}

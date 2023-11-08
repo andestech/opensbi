@@ -9,6 +9,8 @@
 
 #include <sbi/sbi_types.h>
 
+void fdt_plic_set_pending(u32 irq);
+
 /**
  * Save the PLIC priority state
  * @param priority pointer to the memory region for the saved priority

@@ -55,6 +55,9 @@ libsbi-objs-$(CONFIG_SBI_ECALL_VENDOR) += sbi_ecall_vendor.o
 carray-sbi_ecall_exts-$(CONFIG_SBI_ECALL_DBTR) += ecall_dbtr
 libsbi-objs-$(CONFIG_SBI_ECALL_DBTR) += sbi_ecall_dbtr.o
 
+carray-sbi_ecall_exts-$(CONFIG_SBI_ECALL_OPTEE) += ecall_optee
+libsbi-objs-$(CONFIG_SBI_ECALL_OPTEE) += sbi_ecall_optee.o
+
 libsbi-objs-y += sbi_bitmap.o
 libsbi-objs-y += sbi_bitops.o
 libsbi-objs-y += sbi_console.o

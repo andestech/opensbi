@@ -10,9 +10,11 @@
 #ifndef __SBI_DOMAIN_H__
 #define __SBI_DOMAIN_H__
 
+#include <sbi/riscv_locks.h>
 #include <sbi/sbi_types.h>
 #include <sbi/sbi_hartmask.h>
 #include <sbi/sbi_domain_context.h>
+#include <sbi/sbi_trap.h>
 
 struct sbi_scratch;
 
@@ -160,6 +162,22 @@ struct sbi_domain_memregion {
 /** Maximum number of domains */
 #define SBI_DOMAIN_MAX_INDEX			32
 
+#define SBI_DOMAIN_ROOT_INDEX			0
+
+struct sbi_domain_hart_context {
+	struct sbi_trap_regs regs;
+	unsigned long sepc;
+	unsigned long satp;
+	unsigned long sstatus;
+	unsigned long sie;
+	unsigned long stvec;
+	unsigned long sscratch;
+	unsigned long scounteren;
+	unsigned long scause;
+	unsigned long stval;
+	unsigned long sip;
+};
+
 /** Representation of OpenSBI domain */
 struct sbi_domain {
 	/**
@@ -195,6 +213,13 @@ struct sbi_domain {
 	bool system_suspend_allowed;
 	/** Identifies whether to include the firmware region */
 	bool fw_region_inited;
+
+	/** Lock of domain */
+	spinlock_t lock;
+	/** Domain has booted or not */
+	bool booted;
+	/** Hart contexts within this domain */
+	struct sbi_domain_hart_context hart_contexts[8];
 };
 
 /** The root domain instance */
@@ -330,5 +355,14 @@ int sbi_domain_finalize(struct sbi_scratch *scratch, u32 cold_hartid);
 
 /** Initialize domains */
 int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid);
+
+/** Switch hart to another domain */
+int sbi_hart_switch_domain(u32 hartid, u32 dom_index);
+/** mret to domain */
+int sbi_hart_enter_domain(u32 hartid, u32 dom_index);
+/** Save hart context in current domain */
+int sbi_domain_save_hart_ctx(u32 hartid, const struct sbi_trap_regs *regs);
+/** Get hart context from current domain */
+struct sbi_domain_hart_context *sbi_domain_get_hart_context(u32 hartid);
 
 #endif

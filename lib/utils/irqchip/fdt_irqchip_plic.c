@@ -13,6 +13,8 @@
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_heap.h>
 #include <sbi/sbi_scratch.h>
+#include <sbi/sbi_hartmask.h>
+#include <sbi/sbi_irqchip.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/irqchip/fdt_irqchip.h>
 #include <sbi_utils/irqchip/plic.h>
@@ -40,6 +42,39 @@ static unsigned long plic_scontext_offset;
 
 #define plic_set_hart_scontext(__scratch, __sctx)			\
 	sbi_scratch_write_type((__scratch), long, plic_scontext_offset, (__sctx) + 1)
+
+u32 fdt_plic_claim(void)
+{
+	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
+	struct plic_data *plic = plic_get_hart_data_ptr(scratch);
+
+	return plic_claim(plic, plic_get_hart_mcontext(scratch));
+}
+
+void fdt_plic_complete(u32 irq)
+{
+	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
+	struct plic_data *plic = plic_get_hart_data_ptr(scratch);
+
+	plic_complete(plic, plic_get_hart_mcontext(scratch), irq);
+}
+
+void fdt_plic_set_pending(u32 irq)
+{
+	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
+	struct plic_data *plic = plic_get_hart_data_ptr(scratch);
+
+	plic_set_ip(plic, irq);
+}
+
+extern void sbi_domain_dispatch_interrupt(struct sbi_trap_regs *regs);
+
+static int fdt_plic_irqfn(struct sbi_trap_regs *regs)
+{
+	sbi_domain_dispatch_interrupt(regs);
+
+	return 0;
+}
 
 void fdt_plic_priority_save(u8 *priority, u32 num)
 {
@@ -177,7 +212,10 @@ static int irqchip_plic_cold_init(void *fdt, int nodeoff,
 	if (rc)
 		goto fail_free_data;
 
-	return 0;
+	/* Setup external interrupt function for IMSIC */
+	sbi_irqchip_set_irqfn(fdt_plic_irqfn);
+
+	return irqchip_plic_update_hartid_table(fdt, nodeoff, pd);
 
 fail_free_data:
 	sbi_free(pd);

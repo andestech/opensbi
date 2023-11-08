@@ -8,8 +8,10 @@
  */
 
 #include <sbi/riscv_asm.h>
+#include <sbi/riscv_locks.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_domain.h>
+#include <sbi/sbi_hart.h>
 #include <sbi/sbi_hartmask.h>
 #include <sbi/sbi_heap.h>
 #include <sbi/sbi_hsm.h>
@@ -61,11 +63,20 @@ void sbi_update_hartindex_to_domain(u32 hartindex, struct sbi_domain *dom)
 
 	sbi_scratch_write_type(scratch, void *, domain_hart_ptr_offset, dom);
 }
+//static void update_hartid_to_domain(u32 hartid, struct sbi_domain *dom)
+//{
+//	sbi_hartid_to_domain(hartid) = dom;
+//}
 
 bool sbi_domain_is_assigned_hart(const struct sbi_domain *dom, u32 hartid)
 {
-	if (dom)
-		return sbi_hartmask_test_hartid(hartid, &dom->assigned_harts);
+	bool res;
+	if (dom) {
+		spin_lock((spinlock_t *)&dom->lock);
+		res = sbi_hartmask_test_hartid(hartid, &dom->assigned_harts);
+		spin_unlock((spinlock_t *)&dom->lock);
+		return res;
+	}
 
 	return false;
 }
@@ -418,6 +429,145 @@ bool sbi_domain_check_addr_range(const struct sbi_domain *dom,
 	return true;
 }
 
+#if 0
+static void sbi_domain_dump_ctx(struct sbi_domain_hart_context *ctx)
+{
+#define PRILX               "016lx"
+	sbi_printf("mepc=0x%" PRILX " mstatus=0x%" PRILX "\n", ctx->regs.mepc, ctx->regs.mstatus);
+	sbi_printf("ra=0x%" PRILX " sp=0x%" PRILX "\n", ctx->regs.ra, ctx->regs.sp);
+	sbi_printf("gp=0x%" PRILX " tp=0x%" PRILX "\n", ctx->regs.gp, ctx->regs.tp);
+	sbi_printf("s0=0x%" PRILX " s1=0x%" PRILX "\n", ctx->regs.s0, ctx->regs.s1);
+	sbi_printf("a0=0x%" PRILX " a1=0x%" PRILX "\n", ctx->regs.a0, ctx->regs.a1);
+	sbi_printf("a2=0x%" PRILX " a3=0x%" PRILX "\n", ctx->regs.a2, ctx->regs.a3);
+	sbi_printf("a4=0x%" PRILX " a5=0x%" PRILX "\n", ctx->regs.a4, ctx->regs.a5);
+	sbi_printf("a6=0x%" PRILX " a7=0x%" PRILX "\n", ctx->regs.a6, ctx->regs.a7);
+	sbi_printf("s2=0x%" PRILX " s3=0x%" PRILX "\n", ctx->regs.s2, ctx->regs.s3);
+	sbi_printf("s4=0x%" PRILX " s5=0x%" PRILX "\n", ctx->regs.s4, ctx->regs.s5);
+	sbi_printf("s6=0x%" PRILX " s7=0x%" PRILX "\n", ctx->regs.s6, ctx->regs.s7);
+	sbi_printf("s8=0x%" PRILX " s9=0x%" PRILX "\n", ctx->regs.s8, ctx->regs.s9);
+	sbi_printf("s10=0x%" PRILX " s11=0x%" PRILX "\n", ctx->regs.s10, ctx->regs.s11);
+	sbi_printf("t0=0x%" PRILX " t1=0x%" PRILX "\n", ctx->regs.t0, ctx->regs.t1);
+	sbi_printf("t2=0x%" PRILX " t3=0x%" PRILX "\n", ctx->regs.t2, ctx->regs.t3);
+	sbi_printf("t4=0x%" PRILX " t5=0x%" PRILX "\n", ctx->regs.t4, ctx->regs.t5);
+	sbi_printf("t6=0x%" PRILX "\n", ctx->regs.t6);
+
+	sbi_printf("sepc=0x%" PRILX " sstatus=0x%" PRILX "\n", ctx->sepc, ctx->sstatus);
+	sbi_printf("satp=0x%" PRILX " sie=0x%" PRILX "\n", ctx->satp, ctx->sie);
+	sbi_printf("sip=0x%" PRILX "\n", csr_read(CSR_SIP));
+}
+#endif
+
+/* Switch current hart to target domain. */
+int sbi_hart_switch_domain(u32 hartid, u32 dom_index)
+{
+	struct sbi_domain *cur_dom, *next_dom;
+
+	cur_dom = sbi_domain_thishart_ptr();
+	if (!cur_dom)
+		return SBI_EINVAL;
+
+	next_dom = sbi_index_to_domain(dom_index);
+	if (!next_dom)
+		return SBI_EINVAL;
+
+	if (!sbi_hartmask_test_hartid(hartid, next_dom->possible_harts))
+		return SBI_EINVAL;
+
+	/* Do not clear root domain assigned harts */
+	if (cur_dom->index != SBI_DOMAIN_ROOT_INDEX) {
+		spin_lock(&cur_dom->lock);
+		sbi_hartmask_clear_hartid(hartid, &cur_dom->assigned_harts);
+		spin_unlock(&cur_dom->lock);
+	}
+
+	sbi_update_hartindex_to_domain(sbi_hartid_to_hartindex(hartid), next_dom);
+
+	spin_lock(&next_dom->lock);
+	sbi_hartmask_set_hartid(hartid, &next_dom->assigned_harts);
+	spin_unlock(&next_dom->lock);
+
+	//sbi_printf("Switch hart%d from domain%d to domain%d\n",
+	//	   hartid, cur_dom->index, next_dom->index);
+
+	sbi_hart_pmp_configure(sbi_hartid_to_scratch(hartid));
+
+	return SBI_OK;
+}
+
+int sbi_hart_enter_domain(u32 hartid, u32 dom_index)
+{
+	struct sbi_domain *dom;
+	struct sbi_domain_hart_context *context;
+
+	dom = sbi_index_to_domain(dom_index);
+	if (!dom)
+		return SBI_EINVAL;
+
+	context = &dom->hart_contexts[hartid];
+
+	if (dom->booted) {
+		/* Restore S-mode CSR */
+		csr_write(CSR_SEPC,       context->sepc);
+		csr_write(CSR_SATP,       context->satp);
+		csr_write(CSR_SSTATUS,    context->sstatus);
+		csr_write(CSR_SIE,        context->sie);
+		csr_write(CSR_STVEC,      context->stvec);
+		csr_write(CSR_SSCRATCH,   context->sscratch);
+		csr_write(CSR_SCOUNTEREN, context->scounteren);
+		csr_write(CSR_SCAUSE,     context->scause);
+		csr_write(CSR_STVAL,      context->stval);
+		/* This will mret into the domain */
+		sbi_trap_exit(&context->regs);
+
+		/* Should not be here */
+		sbi_hart_hang();
+	} else {
+		dom->booted = true;
+		sbi_printf("Boot domain%d\n", dom->index);
+		sbi_hart_switch_mode(hartid, dom->next_arg1, dom->next_addr,
+				     dom->next_mode, false);
+	}
+
+	return SBI_OK;
+}
+
+int sbi_domain_save_hart_ctx(u32 hartid, const struct sbi_trap_regs *regs)
+{
+	struct sbi_domain *dom;
+	struct sbi_domain_hart_context *context;
+
+	dom = sbi_domain_thishart_ptr();
+	if (!dom)
+		return SBI_EINVAL;
+
+	context = &dom->hart_contexts[hartid];
+
+	sbi_memcpy(&context->regs, regs, sizeof(struct sbi_trap_regs));
+	context->sepc = csr_read(CSR_SEPC);
+	context->satp = csr_read(CSR_SATP);
+	context->sstatus = csr_read(CSR_SSTATUS);
+	context->sie = csr_read(CSR_SIE);
+	context->stvec = csr_read(CSR_STVEC);
+	context->sscratch = csr_read(CSR_SSCRATCH);
+	context->scounteren = csr_read(CSR_SCOUNTEREN);
+	context->scause = csr_read(CSR_SCAUSE);
+	context->stval = csr_read(CSR_STVAL);
+	context->sip = csr_read(CSR_SIP);
+
+	return SBI_OK;
+}
+
+struct sbi_domain_hart_context *sbi_domain_get_hart_context(u32 hartid)
+{
+	struct sbi_domain *dom;
+
+	dom = sbi_hartindex_to_domain(sbi_hartid_to_hartindex(hartid));
+	if (!dom)
+		return NULL;
+
+	return &dom->hart_contexts[hartid];
+}
+
 void sbi_domain_dump(const struct sbi_domain *dom, const char *suffix)
 {
 	u32 i, j, k;
@@ -550,6 +700,9 @@ int sbi_domain_register(struct sbi_domain *dom,
 			   dom->name, rc);
 		return rc;
 	}
+
+	/* Init spin lock */
+	SPIN_LOCK_INIT(dom->lock);
 
 	/* Assign index to domain */
 	dom->index = domain_count++;
