@@ -129,6 +129,8 @@ void print_detailed_cause(long mcause, ulong mdcause)
 		}
 	} else {
 		mcause &= ~(1UL << (__riscv_xlen - 1));
+		mdcause &= CSR_MDCAUSE_MASK;
+		
 		switch (mcause) {
 		case CAUSE_IMPRECISE_ECC:
 			sbi_printf("The detailed trap cause: %s\n",

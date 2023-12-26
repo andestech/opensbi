@@ -64,6 +64,9 @@
 #define CSR_MSAVEDCAUSE1    0x7db
 #define CSR_MSAVEDCAUSE2    0x7dc
 
+/* Trap related CSR mask */
+#define CSR_MDCAUSE_MASK	0x1f
+
 /* Trap/Imprecise exception causes */
 #define CAUSE_IMPRECISE_ECC		0x10
 #define CAUSE_BUS_RW_TRANSACTION	0x11
