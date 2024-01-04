@@ -15,13 +15,14 @@
 
 #define SBI_DOMAIN_TRUSTED_INDEX	1
 
-#define PLIC_SOURCES			0x7F
+#define PLIC_SOURCES			0x47
+#define PLIC_NR_CORES			8
 #define PLIC_IE_WORDS			((PLIC_SOURCES + 31) / 32)
 
-static u32 plic_secure_ie[2][PLIC_IE_WORDS];
-static u32 plic_secure_threshold[2];
-static u32 plic_nonsecure_ie[2][PLIC_IE_WORDS];
-static u32 plic_nonsecure_threshold[2];
+static u32 plic_secure_ie[PLIC_NR_CORES][PLIC_IE_WORDS];
+static u32 plic_secure_threshold[PLIC_NR_CORES];
+static u32 plic_nonsecure_ie[PLIC_NR_CORES][PLIC_IE_WORDS];
+static u32 plic_nonsecure_threshold[PLIC_NR_CORES];
 
 struct optee_vector_table_t {
 	u32 yield_call_entry;
