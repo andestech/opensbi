@@ -25,6 +25,9 @@
 
 #define PLICSW_HART_MASK		0x01010101
 
+#define BITS_PER_REG            32
+#define BYTES_PER_REG           4
+
 struct plicsw {
 	u32 source_id;
 
