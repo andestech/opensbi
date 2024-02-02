@@ -390,8 +390,16 @@ static int sbi_ecall_optee_handler(unsigned long extid, unsigned long funcid,
 	return ret;
 }
 
+struct sbi_ecall_extension ecall_optee;
+
+static int sbi_ecall_optee_register_extensions(void)
+{
+	return sbi_ecall_register_extension(&ecall_optee);
+}
+
 struct sbi_ecall_extension ecall_optee = {
 	.extid_start		= SBI_EXT_OPTEE,
 	.extid_end		= SBI_EXT_OPTEE,
+	.register_extensions	= sbi_ecall_optee_register_extensions,
 	.handle			= sbi_ecall_optee_handler,
 };
