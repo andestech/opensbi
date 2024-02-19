@@ -58,6 +58,16 @@ struct sbi_context {
 		sbi_domain_thishart_ptr())
 
 /**
+ * Set domain entry point
+ * @param dom pointer to domain
+ * @param entry_point new entry point of domain
+ *
+ * @return 0 on success and negative error code on failure
+ */
+int sbi_domain_context_set_mepc(struct sbi_domain *dom, unsigned long entry_point);
+
+
+/**
  * Enter a specific domain context synchronously
  * @param dom pointer to domain
  *
