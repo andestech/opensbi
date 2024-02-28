@@ -14,17 +14,22 @@
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_rpxy.h>
 #include <sbi/sbi_scratch.h>
-
-struct rpxy_state {
-	unsigned long shmem_size;
-	unsigned long shmem_addr;
-};
-
-/** Offset of pointer to RPXY state in scratch space */
-static unsigned long rpxy_state_offset;
+#include <sbi/sbi_console.h>
+#include <sbi/sbi_domain.h>
+#include <sbi/sbi_heap.h>
 
 /** List of RPMI proxy service groups */
 static SBI_LIST_HEAD(rpxy_group_list);
+
+/** Get the context pointer for a given hart index and domain */
+#define sbi_hartindex_to_domain_rs(__hartindex, __d) \
+	(__d)->hartindex_to_rs_table[__hartindex]
+
+/** Macro to obtain the current hart's context pointer */
+#define sbi_domain_rs_thishart_ptr()                  \
+	sbi_hartindex_to_domain_rs(                   \
+		sbi_hartid_to_hartindex(current_hartid()), \
+		sbi_domain_thishart_ptr())
 
 static struct sbi_rpxy_service *rpxy_find_service(
 					struct sbi_rpxy_service_group *grp,
@@ -78,9 +83,7 @@ int sbi_rpxy_set_shmem(unsigned long shmem_size,
 		       unsigned long shmem_phys_hi,
 		       unsigned long flags)
 {
-	struct rpxy_state *rs =
-		sbi_scratch_thishart_offset_ptr(rpxy_state_offset);
-
+	struct rpxy_state *rs = sbi_domain_rs_thishart_ptr();
 	if (shmem_phys_lo == -1UL && shmem_phys_hi == -1UL) {
 		rs->shmem_size = 0;
 		rs->shmem_addr = 0;
@@ -113,8 +116,7 @@ int sbi_rpxy_send_message(u32 transport_id,
 	void *tx = NULL, *rx = NULL;
 	struct sbi_rpxy_service *srv = NULL;
 	struct sbi_rpxy_service_group *grp;
-	struct rpxy_state *rs =
-		sbi_scratch_thishart_offset_ptr(rpxy_state_offset);
+	struct rpxy_state *rs = sbi_domain_rs_thishart_ptr();
 
 	if (!rs->shmem_size)
 		return SBI_ENO_SHMEM;
@@ -162,8 +164,7 @@ int sbi_rpxy_get_notification_events(u32 transport_id, u32 service_group_id,
 {
 	int rc;
 	struct sbi_rpxy_service_group *grp;
-	struct rpxy_state *rs =
-		sbi_scratch_thishart_offset_ptr(rpxy_state_offset);
+	struct rpxy_state *rs = sbi_domain_rs_thishart_ptr();
 
 	if (!rs->shmem_size)
 		return SBI_ENO_SHMEM;
@@ -220,9 +221,20 @@ int sbi_rpxy_register_service_group(struct sbi_rpxy_service_group *grp)
 
 int sbi_rpxy_init(struct sbi_scratch *scratch)
 {
-	rpxy_state_offset = sbi_scratch_alloc_type_offset(struct rpxy_state);
-	if (!rpxy_state_offset)
-		return SBI_ENOMEM;
+	u32 i, j;
+	struct sbi_domain *dom;
+	struct rpxy_state *rs;
+	/* Loop through each domain to configure its rpxy state */
+	sbi_domain_for_each(i, dom) {
+		/* Iterate over all possible HARTs and allocate rpxy state structure */
+		sbi_hartmask_for_each_hartindex(j, dom->possible_harts) {
+			rs = sbi_zalloc(sizeof(struct rpxy_state));
+			if (!rs)
+				return SBI_ENOMEM;
+
+			dom->hartindex_to_rs_table[j] = rs;
+		}
+	}
 
 	return sbi_platform_rpxy_init(sbi_platform_ptr(scratch));
 }
