@@ -7,4 +7,10 @@ config FDT_RPXY
 	depends on FDT
 	default n
 
+if FDT_RPXY
+config FDT_RPXY_SPD
+	bool "FDT RPXY SPD client driver"
+	default n
+
+endif
 endmenu
