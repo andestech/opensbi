@@ -12,6 +12,15 @@
 
 #include <sbi/sbi_list.h>
 
+/** RPXY transport protocol type */
+#define RPXY_TRANS_PROT_MASK	(0xFFFF0000)
+#define RPXY_TRANS_PROT_SHIFT	(16)
+enum rpxy_transport_protocol {
+	RPXY_TRANS_PROT_RPMI = 0,
+	RPXY_TRANS_PROT_SEC = 1,
+	RPXY_TRANS_PROT_ID_MAX_COUNT,
+};
+
 struct sbi_scratch;
 
 /** A RPMI proxy service accessible through SBI interface */
