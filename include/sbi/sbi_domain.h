@@ -213,6 +213,10 @@ void sbi_update_hartindex_to_domain(u32 hartindex, struct sbi_domain *dom);
 #define sbi_domain_thishart_ptr() \
 	sbi_hartindex_to_domain(sbi_hartid_to_hartindex(current_hartid()))
 
+/** Get pointer to sbi_domain for specific HART */
+#define sbi_domain_hart_ptr(hartid) \
+	sbi_hartindex_to_domain(sbi_hartid_to_hartindex(hartid))
+
 /** Index to domain table */
 extern struct sbi_domain *domidx_to_domain_table[];
 

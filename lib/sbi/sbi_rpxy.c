@@ -21,16 +21,6 @@
 /** List of RPMI proxy service groups */
 static SBI_LIST_HEAD(rpxy_group_list);
 
-/** Get the context pointer for a given hart index and domain */
-#define sbi_hartindex_to_domain_rs(__hartindex, __d) \
-	(__d)->hartindex_to_rs_table[__hartindex]
-
-/** Macro to obtain the current hart's context pointer */
-#define sbi_domain_rs_thishart_ptr()                  \
-	sbi_hartindex_to_domain_rs(                   \
-		sbi_hartid_to_hartindex(current_hartid()), \
-		sbi_domain_thishart_ptr())
-
 static struct sbi_rpxy_service *rpxy_find_service(
 					struct sbi_rpxy_service_group *grp,
 					u8 service_id)

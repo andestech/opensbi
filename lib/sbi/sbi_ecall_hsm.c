@@ -27,7 +27,7 @@ static int sbi_ecall_hsm_handler(unsigned long extid, unsigned long funcid,
 
 	switch (funcid) {
 	case SBI_EXT_HSM_HART_START:
-		ret = sbi_hsm_hart_start(scratch, sbi_domain_thishart_ptr(),
+		ret = sbi_hsm_hart_start(scratch, sbi_domain_hart_ptr(regs->a0),
 					 regs->a0, regs->a1, smode, regs->a2);
 		break;
 	case SBI_EXT_HSM_HART_STOP:

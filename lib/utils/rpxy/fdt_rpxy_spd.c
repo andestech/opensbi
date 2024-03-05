@@ -30,7 +30,6 @@ struct rpxy_spd_data {
 	u32 service_group_id;
 	int num_services;
 	struct sbi_rpxy_service *services;
-    struct rpxy_spd_srv *dispatcher;
 };
 
 struct abi_entry_vectors {
@@ -70,6 +69,34 @@ int spd_srv_setup(void *fdt, int nodeoff, const struct fdt_match *match)
 	return 0;
 }
 
+static struct sbi_domain *__get_tdomain(void)
+{
+	int i;
+	struct sbi_domain *dom = NULL;
+	sbi_domain_for_each(i, dom)
+	{
+		if (!sbi_strcmp(dom->name, spd_domain_name)) {
+			return dom;
+		}
+	}
+
+	return NULL;
+}
+
+static struct sbi_domain *__get_udomain(void)
+{
+	int i;
+	struct sbi_domain *dom = NULL;
+	sbi_domain_for_each(i, dom)
+	{
+		if (!sbi_strcmp(dom->name, "untrusted-domain")) {
+			return dom;
+		}
+	}
+
+	return NULL;
+}
+
 static int sbi_ecall_tee_domain_enter(unsigned long entry_point)
 {
 	int i;
@@ -95,8 +122,6 @@ static int sbi_ecall_tee_domain_exit(void)
 	return 0;
 }
 
-static unsigned long *ree_rx = 0;
-static unsigned long *tee_rx = 0;
 static int spd_srv_handler(struct sbi_rpxy_service_group *grp,
 				  struct sbi_rpxy_service *srv,
 				  void *tx, u32 tx_len,
@@ -104,10 +129,14 @@ static int spd_srv_handler(struct sbi_rpxy_service_group *grp,
 				  unsigned long *ack_len)
 {
 	int srv_id = srv->id;
+	struct rpxy_state *rs;
+
 	if (SPD_BASE_SRV_COMMUNICATE == srv_id) {
-		ree_rx = rx;
-		sbi_memcpy(tee_rx, tx, tx_len);
-		if (GET_ABI_ENTRY_TYPE(tee_rx[0]) == ABI_ENTRY_TYPE_FAST) {
+		/* Get per-hart RPXY share memory with tdomain */
+		rs = sbi_hartindex_to_domain_rs(
+			sbi_hartid_to_hartindex(current_hartid()), __get_tdomain());
+		sbi_memcpy((void *)rs->shmem_addr, tx, tx_len);
+		if (GET_ABI_ENTRY_TYPE(((ulong *)rs->shmem_addr)[0]) == ABI_ENTRY_TYPE_FAST) {
 			sbi_ecall_tee_domain_enter((unsigned long)
 					&entry_vector_table->fast_abi_entry);
 		} else {
@@ -115,12 +144,21 @@ static int spd_srv_handler(struct sbi_rpxy_service_group *grp,
 					&entry_vector_table->yield_abi_entry);
 		}
 	} else if (SPD_BASE_SRV_COMPLETE == srv_id) {
-		tee_rx = rx;
-		if(ree_rx) {
-			sbi_memcpy(ree_rx, tx, tx_len);
-			*ack_len = tx_len;
+		/* Get per-hart RPXY share memory with udomain */
+		rs = sbi_hartindex_to_domain_rs(
+			sbi_hartid_to_hartindex(current_hartid()), __get_udomain());
+		if (rs->shmem_addr) {
+			/* tx has a0~a4. Just skip a0 and copy a1~a4 here */
+			sbi_memcpy((void *)rs->shmem_addr,
+				   &(((unsigned long *)tx)[1]),
+				   tx_len - sizeof(unsigned long));
+			*ack_len = tx_len - sizeof(unsigned long);
 		} else {
-			entry_vector_table = (struct abi_entry_vectors *) (*(unsigned long *)tx);
+			if (((unsigned long *)tx)[0] == 0xBE000000) {
+				/* RETURN_INIT_DONE */
+				entry_vector_table = (struct abi_entry_vectors *) (((unsigned long *)tx)[1]);
+				sbi_printf("entry_vector_table = 0x%lX\n", (ulong)entry_vector_table);
+			}
 		}
 		sbi_ecall_tee_domain_exit();
 	}
