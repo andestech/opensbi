@@ -209,17 +209,17 @@ cpu_suspend2ram:
     PUSH_CSR(CSR_SDCAUSE)
 
     # Check if we need to store L2 base address and L2 settings
-    # Get ae350_suspend_mode[n] to $a4 before CM is disabled
-    # $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
+    # Get ae350_suspend_mode[n] to $s1 before CM is disabled
+    # $s1 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
     csrr    t1, CSR_MHARTID
     slli    t1, t1, 0x2
     la      t0, ae350_suspend_mode
     add     t0, t0, t1
-    lw      a4, 0(t0)
+    lw      s1, 0(t0)
 
     # ae350_suspend_mode[n] == CpuHotplugDeepSleepMode --> jump to calc_rst_vec
     li      t1, CpuHotplugDeepSleepMode
-    beq     a4, t1, calc_rst_vec
+    beq     s1, t1, calc_rst_vec
 
 check_if_hart0:
     # Store L2 setting before disabling caches when doing deep sleep
@@ -292,15 +292,9 @@ wait_for_DC_COHSTA_disable:
     bnez    t1, wait_for_DC_COHSTA_disable
 
 suspend_mode_check1:
-    csrr    t1, CSR_MHARTID
-    slli    t1, t1, 0x2
-    la      t0, ae350_suspend_mode
-    add     t0, t0, t1
-    lw      a4, 0(t0)
-
-    # ae350_suspend_mode[n] == CpuHotplugDeepSleepMode --> skip disable_L2
+    # ae350_suspend_mode[n] (stored in $s1) == CpuHotplugDeepSleepMode --> skip disable_L2
     li      t1, CpuHotplugDeepSleepMode
-    beq     a4, t1, goto_sleep
+    beq     s1, t1, goto_sleep
 
 disable_L2:
     # Check if l2 exist
@@ -374,19 +368,6 @@ restore_sp:
     add     t0, t0, t1
     lw      sp, 0(t0)
 
-suspend_mode_check2:
-    # load ae350_suspend_mode[n] to $a4
-    # $a4 = *(&ae350_suspend_mode + (mhartid * sizeof(int)))
-    csrr    t1, CSR_MHARTID
-    slli    t1, t1, 0x2
-    la      t0, ae350_suspend_mode
-    add     t0, t0, t1
-    lw      a4, 0(t0)
-
-    # check ae350_suspend_mode[n] == CpuHotplugDeepSleepMode
-    li      t1, CpuHotplugDeepSleepMode
-    beq     a4, t1, enable_CM
-
 enable_L2:
     csrr    t0, CSR_MHARTID
     bnez    t0, enable_CM	# if !(hart0), then jump to enable_CM
@@ -397,6 +378,9 @@ alloc_L2_addr_2:
     REG_L   t0, 0(sp)           # Get addr from cache_get_addr to $t0
     addi    sp, sp, REGBYTES    # Free the allocated space
     bltz    a0, enable_CM
+    lw      t1, 0x8(t0)         # Check if L2 is enabled: (if L2 is enabled -> hotplug, if L2 is disabled -> deep sleep)
+    andi    t1, t1, 0x1         #	L2 enable bit: L2 control register[0]
+    bnez    t1, enable_CM       #	if L2 is enabled, jump to enable_CM
 restore_L2:
     # restore L2 setting
     POP(t1)
