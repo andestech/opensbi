@@ -54,8 +54,10 @@ static void switch_to_next_domain_context(struct sbi_context *ctx,
 	ctx->scause	= csr_swap(CSR_SCAUSE, dom_ctx->scause);
 	ctx->stval	= csr_swap(CSR_STVAL, dom_ctx->stval);
 	ctx->satp	= csr_swap(CSR_SATP, dom_ctx->satp);
-	ctx->scounteren = csr_swap(CSR_SCOUNTEREN, dom_ctx->scounteren);
-	ctx->senvcfg	= csr_swap(CSR_SENVCFG, dom_ctx->senvcfg);
+	if (sbi_hart_priv_version(scratch) >= SBI_HART_PRIV_VER_1_10)
+		ctx->scounteren = csr_swap(CSR_SCOUNTEREN, dom_ctx->scounteren);
+	if (sbi_hart_priv_version(scratch) >= SBI_HART_PRIV_VER_1_12)
+		ctx->senvcfg	= csr_swap(CSR_SENVCFG, dom_ctx->senvcfg);
 
 	/* Save current trap state and restore target domain's trap state */
 	trap_regs = (struct sbi_trap_regs *)(csr_read(CSR_MSCRATCH) -
