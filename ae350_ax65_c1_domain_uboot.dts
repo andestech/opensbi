@@ -48,7 +48,7 @@
 				//   (E|SUX|SUW| SUR|MX|MW|MR)
 				regions = <&tmem 0x0 &allmem 0x3f>;
 				boot-hart = <&CPU0>;
-				next-arg1 = <0x00 0x0187de68>; // dtb : FW_JUMP   : 0x2200000,
+				//next-arg1 = <0x00 0x0187de68>; // dtb : FW_JUMP   : 0x2200000,
 							       //       FW_DYNAMIC: 0x0187de58
 				next-addr = <0x00 0x01800000>; // u-boot
 				next-mode = <0x01>;
