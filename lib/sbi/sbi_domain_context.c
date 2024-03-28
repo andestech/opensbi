@@ -15,6 +15,8 @@
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_domain_context.h>
 
+static spinlock_t assigned_harts_lock = SPIN_LOCK_INITIALIZER;
+
 /**
  * Switches the HART context from the current domain to the target domain.
  * This includes changing domain assignments and reconfiguring PMP, as well
@@ -34,10 +36,12 @@ static void switch_to_next_domain_context(struct sbi_context *ctx,
 
 	/* Assign current hart to target domain */
 	hartindex = sbi_hartid_to_hartindex(current_hartid());
+	spin_lock(&assigned_harts_lock);
 	sbi_hartmask_clear_hartindex(
 		hartindex, &sbi_domain_thishart_ptr()->assigned_harts);
 	sbi_update_hartindex_to_domain(hartindex, dom);
 	sbi_hartmask_set_hartindex(hartindex, &dom->assigned_harts);
+	spin_unlock(&assigned_harts_lock);
 
 	/* Reconfigure PMP settings for the new domain */
 	for (int i = 0; i < pmp_count; i++) {
