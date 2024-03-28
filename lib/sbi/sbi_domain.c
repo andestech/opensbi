@@ -555,6 +555,9 @@ int sbi_domain_register(struct sbi_domain *dom,
 	dom->index = domain_count++;
 	domidx_to_domain_table[dom->index] = dom;
 
+	/* Initialize spinlock for dom->assigned_harts */
+	SPIN_LOCK_INIT(dom->assigned_harts_lock);
+
 	/* Clear assigned HARTs of domain */
 	sbi_hartmask_clear_all(&dom->assigned_harts);
 
