@@ -53,7 +53,6 @@ static void switch_to_next_domain_context(struct sbi_context *ctx,
 	ctx->sepc	= csr_swap(CSR_SEPC, dom_ctx->sepc);
 	ctx->scause	= csr_swap(CSR_SCAUSE, dom_ctx->scause);
 	ctx->stval	= csr_swap(CSR_STVAL, dom_ctx->stval);
-	ctx->sip	= csr_swap(CSR_SIP, dom_ctx->sip);
 	ctx->satp	= csr_swap(CSR_SATP, dom_ctx->satp);
 	ctx->scounteren = csr_swap(CSR_SCOUNTEREN, dom_ctx->scounteren);
 	ctx->senvcfg	= csr_swap(CSR_SENVCFG, dom_ctx->senvcfg);
