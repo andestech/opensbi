@@ -59,7 +59,6 @@ static void switch_to_next_domain_context(struct sbi_context *ctx,
 	ctx->sepc	= csr_swap(CSR_SEPC, dom_ctx->sepc);
 	ctx->scause	= csr_swap(CSR_SCAUSE, dom_ctx->scause);
 	ctx->stval	= csr_swap(CSR_STVAL, dom_ctx->stval);
-	ctx->sip	= csr_swap(CSR_SIP, dom_ctx->sip);
 	ctx->satp	= csr_swap(CSR_SATP, dom_ctx->satp);
 	if (is_andes_cpu()) {
 		ctx->slie = csr_swap(CSR_SLIE, dom_ctx->slie);
