@@ -25,7 +25,8 @@
 
 extern void __ae350_disable_coherency(void);
 extern void __ae350_enable_coherency(void);
-extern void cpu_suspend2ram(void);
+extern void suspend2ram_deep_sleep(unsigned long l2c_base_addr);
+extern void suspend2ram_hotplug(void);
 
 static __always_inline void mcall_set_mcache_ctl(unsigned long val)
 {
@@ -83,8 +84,11 @@ int ae350_set_suspend_mode(u32 suspend_mode)
 int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 {
 	u32 hartid, cpu_nums, suspend_mode;
+	unsigned long l2c_base_addr = 0;
 
-	hartid	 = current_hartid();
+	cache_get_addr(&l2c_base_addr);
+
+	hartid 	= current_hartid();
 	cpu_nums = sbi_platform_thishart_ptr()->hart_count;
 
 	suspend_mode = ae350_suspend_mode[hartid];
@@ -155,7 +159,7 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 		if (main_core)
 			smu_check_pcs_status(DEEP_SLEEP_STATUS, cpu_nums);
 		// stop & wfi & resume
-		cpu_suspend2ram();
+		suspend2ram_deep_sleep(l2c_base_addr);
 		// enable privilege
 		smu_suspend_prepare(main_core, true);
 		break;
@@ -178,7 +182,7 @@ int ae350_enter_suspend_mode(bool main_core, unsigned int wake_mask)
 			// set SMU Deep sleep command
 			smu_set_sleep(hartid, DEEP_SLEEP_MODE);
 			// stop & wfi & resume
-			cpu_suspend2ram();
+			suspend2ram_hotplug();
 			// enable privilege
 			smu_suspend_prepare(-1, true);
 		}
