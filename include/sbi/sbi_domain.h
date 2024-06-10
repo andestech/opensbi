@@ -14,6 +14,7 @@
 #include <sbi/sbi_types.h>
 #include <sbi/sbi_hartmask.h>
 #include <sbi/sbi_domain_context.h>
+#include <sbi/sbi_mpxy.h>
 
 struct sbi_scratch;
 
@@ -182,6 +183,8 @@ struct sbi_domain {
 	const struct sbi_hartmask *possible_harts;
 	/** Contexts for possible HARTs indexed by hartindex */
 	struct sbi_context *hartindex_to_context_table[SBI_HARTMASK_MAX_BITS];
+	/** mpxy state for possible HARTs indexed by hartindex */
+	struct mpxy_state *hartindex_to_rs_table[SBI_HARTMASK_MAX_BITS];
 	/** Array of memory regions terminated by a region with order zero */
 	struct sbi_domain_memregion *regions;
 	/** HART id of the HART booting this domain */

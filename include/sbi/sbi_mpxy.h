@@ -133,6 +133,32 @@ struct sbi_mpxy_channel {
 	void (*switch_eventsstate)(u32 enable);
 };
 
+/** Per hart shared memory */
+struct mpxy_shmem {
+	unsigned long shmem_size;
+	unsigned long shmem_addr_lo;
+	unsigned long shmem_addr_hi;
+};
+
+struct mpxy_state {
+	/* MSI support in MPXY */
+	bool msi_avail;
+	/* SSE support in MPXY */
+	bool sse_avail;
+	/* MPXY Shared memory details */
+	struct mpxy_shmem shmem;
+};
+
+/** Get the context pointer for a given hart index and domain */
+#define sbi_hartindex_to_domain_rs(__hartindex, __d) \
+	(__d)->hartindex_to_rs_table[__hartindex]
+
+/** Macro to obtain the current hart's context pointer */
+#define sbi_domain_rs_thishart_ptr()                  \
+	sbi_hartindex_to_domain_rs(                   \
+		sbi_hartid_to_hartindex(current_hartid()), \
+		sbi_domain_thishart_ptr())
+
 /** Register a Message proxy channel */
 int sbi_mpxy_register_channel(struct sbi_mpxy_channel *channel);
 
