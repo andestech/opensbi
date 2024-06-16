@@ -17,6 +17,11 @@ config FDT_MPXY_RPMI_MBOX
 config FDT_MPXY_MM
 	bool "FDT MPXY MM client driver"
 	default n
+
+config FDT_MPXY_OPTEED
+	bool "FDT MPXY OP-TEE secure payload dispatcher (SPD) driver"
+	default n
+
 endif
 
 endmenu
