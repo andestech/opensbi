@@ -255,7 +255,7 @@ int sbi_mpxy_set_shmem(unsigned long shmem_size, unsigned long shmem_phys_lo,
 
 int sbi_mpxy_read_attrs(u32 channel_id, u32 base_attr_id, u32 attr_count)
 {
-	int ret;
+	int ret = SBI_SUCCESS;
 	u32 *attr_ptr, end_id;
 	void *shmem_base;
 
@@ -396,7 +396,7 @@ static void mpxy_write_std_attr(struct sbi_mpxy_channel *channel, u32 attr_id,
 
 int sbi_mpxy_write_attrs(u32 channel_id, u32 base_attr_id, u32 attr_count)
 {
-	int ret, mem_idx;
+	int ret = SBI_SUCCESS, mem_idx;
 	void *shmem_base;
 	u32 *mem_ptr, attr_id, end_id, attr_val;
 
