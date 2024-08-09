@@ -64,6 +64,7 @@
 
 struct l2c_data {
 	unsigned long addr;
+	unsigned long size;
 	/* L2C Gen1/Gen2 quirks */
 	unsigned int cmd_stride;
 	unsigned int status_stride;
@@ -128,10 +129,10 @@ static struct cache andes_l2c = {
 static int andes_l2c_init(void *fdt, int nodeoff, const struct fdt_match *match)
 {
 	int rc;
-	uint64_t addr;
+	uint64_t addr, size;
 	ulong mmsc_cfg;
 
-	rc = fdt_get_node_addr_size(fdt, nodeoff, 0, &addr, NULL);
+	rc = fdt_get_node_addr_size(fdt, nodeoff, 0, &addr, &size);
 	if (rc)
 		return rc;
 
@@ -152,6 +153,7 @@ static int andes_l2c_init(void *fdt, int nodeoff, const struct fdt_match *match)
 	}
 
 	l2c.addr = (unsigned long)addr;
+	l2c.size = (unsigned long)size;
 	if (readl((void *)(l2c.addr + L2C_REG_CFG_OFFSET)) & MEM_MAP_MSK) {
 		/* v1 memory map (Gen2) */
 		l2c.cmd_stride	      = 0x1000;
@@ -163,6 +165,21 @@ static int andes_l2c_init(void *fdt, int nodeoff, const struct fdt_match *match)
 		l2c.status_stride     = 0x0;
 		l2c.status_bit_offset = 0x4;
 	}
+
+	/*
+	 * In AST540, the cache is enabled in cleanup_before_linux() during
+	 * U-boot Normal Boot, before kernel starts. On AX65 CPU, however,
+	 * when an SBI ecall triggers OpenSBI to enable L2C, it results in a
+	 * PMP load access violation due to SMEPMP restrictions on M-mode
+	 * permissions across the entire address range. To prevent this, the
+	 * L2C domain region and its permissions must be pre-configured during
+	 * OpenSBI platform early init.
+	 */
+	rc = sbi_domain_root_add_memrange(l2c.addr, l2c.size, 0x1000,
+		(SBI_DOMAIN_MEMREGION_MMIO |
+		 SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW));
+	if (rc)
+		return rc;
 
 	rc = cache_add(&andes_l2c);
 	if (rc)

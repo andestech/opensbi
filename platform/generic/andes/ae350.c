@@ -114,8 +114,13 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 	pma_init();
 	ae350_hsm_device_init();
 	trigger_init();
-	fdt_cache_init();
 
+	return 0;
+}
+
+static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
+{
+	fdt_cache_init();
 	return 0;
 }
 
@@ -126,6 +131,7 @@ static const struct fdt_match andes_ae350_match[] = {
 
 const struct platform_override andes_ae350 = {
 	.match_table = andes_ae350_match,
+	.early_init  = ae350_early_init,
 	.final_init  = ae350_final_init,
 	.extensions_init = andes_pmu_extensions_init,
 	.pmu_init = andes_pmu_init,
