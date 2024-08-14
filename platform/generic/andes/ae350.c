@@ -19,6 +19,7 @@
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_init.h>
+#include <sbi/sbi_system.h>
 #include <andes/andes_sbi.h>
 #include <andes/andes.h>
 #include <andes/andes_pma.h>
@@ -111,13 +112,35 @@ fail:
 	return 0;
 }
 
-static const struct sbi_hsm_device andes_smu = {
-	.name	      = "andes_smu",
-	.hart_start   = ae350_hart_start,
-	.hart_stop    = ae350_hart_stop,
+static void ae350_hart_resume(void)
+{
+	return;
+}
+
+static const struct sbi_hsm_device andes_smu_hsm = {
+	.name		= "andes_smu",
+	.hart_start	= ae350_hart_start,
+	.hart_stop	= ae350_hart_stop,
+	.hart_resume	= ae350_hart_resume,
 };
 
-static void ae350_hsm_device_init(void)
+static int ae350_system_suspend_check(u32 sleep_type)
+{
+	return 0;
+}
+
+static int ae350_system_suspend(u32 sleep_type, unsigned long mmode_resume_addr)
+{
+	return 0;
+}
+
+static struct sbi_system_suspend_device andes_smu_susp = {
+	.name			= "andes_smu",
+	.system_suspend_check	= ae350_system_suspend_check,
+	.system_suspend		= ae350_system_suspend,
+};
+
+static void ae350_smu_device_init(void)
 {
 	int rc;
 	void *fdt;
@@ -128,7 +151,8 @@ static void ae350_hsm_device_init(void)
 				   "andestech,atcsmu");
 
 	if (!rc) {
-		sbi_hsm_set_device(&andes_smu);
+		sbi_hsm_set_device(&andes_smu_hsm);
+		sbi_system_suspend_set_device(&andes_smu_susp);
 	}
 }
 
@@ -138,7 +162,7 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 		return 0;
 
 	pma_init();
-	ae350_hsm_device_init();
+	ae350_smu_device_init();
 	trigger_init();
 
 	return 0;
