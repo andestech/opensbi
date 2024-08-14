@@ -90,3 +90,10 @@ inline int smu_set_reset_vector(struct smu_data *smu, ulong wakeup_addr,
 	} else
 		return 0;
 }
+
+inline u32 smu_get_sleep_type(struct smu_data *smu, u32 hartid)
+{
+	if (!smu)
+		return SBI_EINVAL;
+	return readl((void *)(smu->addr + PCSm_SCRATCH_OFFSET(hartid)));
+}

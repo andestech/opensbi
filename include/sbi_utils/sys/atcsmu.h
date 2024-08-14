@@ -10,6 +10,8 @@
 #include <sbi/sbi_types.h>
 
 /* clang-format off */
+#define PCS0_SCRATCH_OFFSET	0x84
+#define PCSm_SCRATCH_OFFSET(n) ((n + 3) * 0x20 + PCS0_SCRATCH_OFFSET)
 
 #define PCS0_WE_OFFSET		0x90
 #define PCSm_WE_OFFSET(i)	((i + 3) * 0x20 + PCS0_WE_OFFSET)
@@ -45,6 +47,10 @@
 #define PCS_MAX_NR  8
 #define FLASH_BASE  0x80000000ULL
 
+/* Andes AE350 sleep type */
+#define SBI_SUSP_AE350_LIGHT_SLEEP                     0x80000001
+#define SBI_SUSP_AE350_DEEP_SLEEP                      0x80000002
+
 /* clang-format on */
 
 struct smu_data {
@@ -55,5 +61,6 @@ int smu_set_wakeup_events(struct smu_data *smu, u32 events, u32 hartid);
 bool smu_support_sleep_mode(struct smu_data *smu, u32 sleep_mode, u32 hartid);
 int smu_set_command(struct smu_data *smu, u32 pcs_ctl, u32 hartid);
 int smu_set_reset_vector(struct smu_data *smu, ulong wakeup_addr, u32 hartid);
+u32 smu_get_sleep_type(struct smu_data *smu, u32 hartid);
 
 #endif /* _SYS_ATCSMU_H */
