@@ -25,8 +25,34 @@
 #include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
-extern void __ae350_enable_coherency_warmboot(void);
-extern void __ae350_disable_coherency(void);
+extern void _start_warm(void);
+
+static inline void ae350_disable_coherency(void)
+{
+	csr_write(CSR_MCCTLCOMMAND, MCCTL_L1D_WBINVAL_ALL);
+
+	csr_clear(CSR_MCACHE_CTL, MCACHE_CTL_IC_EN | MCACHE_CTL_DC_EN);
+
+	csr_clear(CSR_MCACHE_CTL, MCACHE_CTL_DC_COHEN_EN);
+
+	while (csr_read(CSR_MCACHE_CTL) & MCACHE_CTL_DC_COHSTA_EN);
+}
+
+static inline void ae350_enable_coherency(void)
+{
+	csr_set(CSR_MCACHE_CTL, MCACHE_CTL_DC_COHEN_EN);
+
+	if (csr_read(CSR_MCACHE_CTL) & MCACHE_CTL_DC_COHEN_EN)
+		while (!(csr_read(CSR_MCACHE_CTL) & MCACHE_CTL_DC_COHSTA_EN));
+
+	csr_set(CSR_MCACHE_CTL, MCACHE_CTL_IC_EN | MCACHE_CTL_DC_EN);
+}
+
+static inline void ae350_enable_coherency_warmboot(void)
+{
+	ae350_enable_coherency();
+	_start_warm();
+}
 
 static int ae350_hart_start(u32 hartid, ulong saddr)
 {
@@ -70,12 +96,12 @@ static int ae350_hart_stop(void)
 	smu_set_command(&smu, DEEP_SLEEP_CMD, hartid);
 
 	rc = smu_set_reset_vector(&smu,
-				  (ulong)__ae350_enable_coherency_warmboot,
+				  (ulong)ae350_enable_coherency_warmboot,
 				  hartid);
 	if (rc)
 		goto fail;
 
-	__ae350_disable_coherency();
+	ae350_disable_coherency();
 
 	wfi();
 
