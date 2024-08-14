@@ -10,13 +10,16 @@
 #include <platform_override.h>
 #include <andes/andes_pmu.h>
 #include <sbi_utils/cache/fdt_cache.h>
+#include <sbi_utils/cache/cache.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/sys/atcsmu.h>
 #include <sbi/riscv_asm.h>
+#include <sbi/riscv_io.h>
 #include <sbi/sbi_bitops.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_hsm.h>
+#include <sbi/sbi_platform.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_init.h>
 #include <sbi/sbi_system.h>
@@ -55,17 +58,30 @@ static inline void ae350_enable_coherency_warmboot(void)
 	_start_warm();
 }
 
+static inline void wait_until_harts_sleep(u32 this_hart, u32 sleep_type, u32 sleep_status)
+{
+	u32 hart_cnt = sbi_platform_thishart_ptr()->hart_count;
+
+	/* skip main hart */
+	for (int hartid = 0; hartid < hart_cnt; hartid++)
+		if ((hartid != this_hart) && (sleep_type == smu_get_sleep_type(&smu, hartid)))
+			while (smu_check_pcs_status(&smu, sleep_status, hartid) != SBI_OK);
+}
+
 static int ae350_hart_start(u32 hartid, ulong saddr)
 {
+	u32 sleep_type = smu_get_sleep_type(&smu, hartid);
 	/*
 	 * Don't send wakeup command when:
 	 * 1) boot-time
 	 * 2) the target hart is non-sleepable 25-series hart0
+	 * 3) deep sleep or light sleep
 	 */
-	if (!sbi_init_count(hartid) || (is_andes(25) && hartid == 0))
+	if (!sbi_init_count(hartid) || (is_andes(25) && hartid == 0) ||
+		sleep_type == SBI_SUSP_AE350_LIGHT_SLEEP || sleep_type == SBI_SUSP_AE350_DEEP_SLEEP)
 		return sbi_ipi_raw_send(sbi_hartid_to_hartindex(hartid));
 
-	/* Write wakeup command to the sleep hart */
+	/* Write wakeup command to the sleep hart only when resuming from hotplug */
 	smu_set_command(&smu, WAKEUP_CMD, hartid);
 
 	return 0;
@@ -75,41 +91,68 @@ static int ae350_hart_stop(void)
 {
 	int rc;
 	u32 hartid = current_hartid();
+	u32 sleep_type = smu_get_sleep_type(&smu, hartid);
 
-	/**
-	 * For Andes AX25MP, the hart0 shares power domain with
-	 * L2-cache, instead of turning it off, it should fall
-	 * through and jump to warmboot_addr.
-	 */
-	if (is_andes(25) && hartid == 0)
-		return SBI_ENOTSUPP;
+	csr_write(CSR_SIE, 0);
+	csr_write(CSR_MIE, 0);
 
-	if (!smu_support_sleep_mode(&smu, DEEPSLEEP_MODE, hartid))
-		return SBI_ENOTSUPP;
+	if (sleep_type == SBI_SUSP_AE350_LIGHT_SLEEP) {
 
-	/**
-	 * disable all events, the current hart will be
-	 * woken up from reset vector when other hart
-	 * writes its PCS (power control slot) control
-	 * register
-	 */
-	smu_set_wakeup_events(&smu, 0x0, hartid);
-	smu_set_command(&smu, DEEP_SLEEP_CMD, hartid);
+		csr_write(CSR_MIE, MIP_MSIP);
+		// set wake event (M-mode Software Interrupt only)
+		smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MSIP_OFFSET, hartid);
 
-	rc = smu_set_reset_vector(&smu,
-				  (ulong)ae350_enable_coherency_warmboot,
-				  hartid);
-	if (rc)
-		goto fail;
+		smu_set_command(&smu, LIGHT_SLEEP_CMD, hartid);
 
-	ae350_disable_coherency();
+		ae350_disable_coherency();
+
+	} else if (sleep_type == SBI_SUSP_AE350_DEEP_SLEEP) {
+
+		csr_write(CSR_MIE, MIP_MSIP);
+		// set wake event (M-mode Software Interrupt only)
+		smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MSIP_OFFSET, hartid);
+
+		smu_set_command(&smu, DEEP_SLEEP_CMD, hartid);
+
+		rc = smu_set_reset_vector(&smu, (ulong)ae350_enable_coherency_warmboot,
+					  hartid);
+		if (rc)
+			sbi_hart_hang();
+
+		ae350_disable_coherency();
+
+	} else {/* Hotplug */
+		/**
+		 * For Andes AX25MP, the hart0 shares power domain with
+		 * L2-cache, instead of turning it off, it should fall
+		 * through and jump to warmboot_addr.
+		 */
+		if (is_andes(25) && hartid == 0)
+			return SBI_ENOTSUPP;
+		/**
+		 * disable all events, the current hart will be
+		 * woken up from reset vector when other hart
+		 * writes its PCS (power control slot) control
+		 * register
+		 */
+		smu_set_wakeup_events(&smu, 0x0, hartid);
+
+		smu_set_command(&smu, DEEP_SLEEP_CMD, hartid);
+
+		rc = smu_set_reset_vector(&smu, (ulong)ae350_enable_coherency_warmboot,
+					  hartid);
+		if (rc)
+			sbi_hart_hang();
+
+		ae350_disable_coherency();
+	}
 
 	wfi();
 
-fail:
-	/* It should never reach here */
-	sbi_hart_hang();
-	return 0;
+	/* light sleep resume */
+	ae350_enable_coherency();
+
+	return SBI_ENOTSUPP;
 }
 
 static void ae350_hart_resume(void)
@@ -126,12 +169,51 @@ static const struct sbi_hsm_device andes_smu_hsm = {
 
 static int ae350_system_suspend_check(u32 sleep_type)
 {
-	return 0;
+	return ((sleep_type == SBI_SUSP_AE350_LIGHT_SLEEP) ||
+		(sleep_type == SBI_SUSP_AE350_DEEP_SLEEP)  ||
+		(sleep_type == SBI_SUSP_SLEEP_TYPE_SUSPEND)) ? SBI_OK : SBI_EINVAL;
 }
 
 static int ae350_system_suspend(u32 sleep_type, unsigned long mmode_resume_addr)
 {
-	return 0;
+	u32 hartid = current_hartid();
+	int rc;
+
+	csr_write(CSR_SIE, 0);
+	csr_write(CSR_MIE, 0);
+
+	/* Peripheral interrupts are all wired to S-mode external interrupt */
+	csr_set(CSR_SIE, MIP_SEIP);
+
+	if (sleep_type == SBI_SUSP_AE350_LIGHT_SLEEP) {
+
+		smu_set_command(&smu, LIGHT_SLEEP_CMD, hartid);
+
+		wait_until_harts_sleep(hartid, sleep_type, LIGHT_SLEEP_STATUS);
+
+		ae350_disable_coherency();
+
+	} else if (sleep_type == SBI_SUSP_AE350_DEEP_SLEEP) {
+
+		smu_set_command(&smu, DEEP_SLEEP_CMD, hartid);
+
+		rc = smu_set_reset_vector(&smu, (ulong)ae350_enable_coherency_warmboot, hartid);
+		if (rc)
+			sbi_hart_hang();
+
+		wait_until_harts_sleep(hartid, sleep_type, DEEP_SLEEP_STATUS);
+
+		ae350_disable_coherency();
+		/* disable L2 cache */
+		cache_disable();
+	}
+
+	wfi();
+
+	/* light sleep resume */
+	ae350_enable_coherency();
+
+	return SBI_OK;
 }
 
 static struct sbi_system_suspend_device andes_smu_susp = {

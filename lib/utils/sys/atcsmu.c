@@ -97,3 +97,15 @@ inline u32 smu_get_sleep_type(struct smu_data *smu, u32 hartid)
 		return SBI_EINVAL;
 	return readl((void *)(smu->addr + PCSm_SCRATCH_OFFSET(hartid)));
 }
+
+int smu_check_pcs_status(struct smu_data *smu, u32 sleep_status, u32 hartid)
+{
+	if (!smu)
+		return SBI_EINVAL;
+
+	void *pcs_status_base = (void *)(smu->addr + PCSm_STATUS_OFFSET(hartid));
+	unsigned long pcs_status_val = readl(pcs_status_base);
+
+	return ((GET_PD_TYPE(pcs_status_val) == SLEEP) &&
+		(GET_PD_STATUS(pcs_status_val) == sleep_status)) ? SBI_OK : SBI_EFAIL;
+}
