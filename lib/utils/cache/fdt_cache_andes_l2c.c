@@ -120,8 +120,25 @@ static int andes_l2c_get_addr(unsigned long *addr)
 	return 0;
 }
 
+static int andes_l2c_disable(void)
+{
+	u32 ctrl;
+
+	ctrl = readl((void *)(l2c.addr + L2C_REG_CTL_OFFSET));
+	if (ctrl & L2_ENABLE) {
+		andes_l2c_wbinval_all();
+		writel(ctrl & (~L2_ENABLE), (void *)(l2c.addr + L2C_REG_CTL_OFFSET));
+	}
+
+	/* Check if L2C is enabled */
+	return (readl((void *)(l2c.addr + L2C_REG_CTL_OFFSET)) & L2_ENABLE)
+	       ? SBI_EINVAL
+	       : SBI_OK;
+}
+
 static struct cache andes_l2c = {
 	.enable	     = andes_l2c_enable,
+	.disable     = andes_l2c_disable,
 	.wbinval_all = andes_l2c_wbinval_all,
 	.get_addr    = andes_l2c_get_addr,
 };
