@@ -36,6 +36,7 @@
 /* Control Registers */
 #define CSR_MPFT_CTL		0x7c5
 #define CSR_MCACHE_CTL		0x7ca
+#define CSR_MCACHE_CTL2		0x7ea
 #define CSR_MCCTLCOMMAND	0x7cc
 #define CSR_MMISC_CTL		0x7d0
 #define CSR_MCLK_CTL		0x7df

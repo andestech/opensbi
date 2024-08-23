@@ -17,6 +17,7 @@
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_io.h>
 #include <sbi/sbi_bitops.h>
+#include <sbi/sbi_csr_detect.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_platform.h>
@@ -30,6 +31,8 @@
 
 static struct smu_data smu = { 0 };
 extern void _start_warm(void);
+
+unsigned long save_regs_off;
 
 static inline void ae350_disable_coherency(void)
 {
@@ -56,6 +59,93 @@ static inline void ae350_enable_coherency_warmboot(void)
 {
 	ae350_enable_coherency();
 	_start_warm();
+}
+
+static void ae350_suspend_non_ret_save(struct sbi_scratch *scratch, bool save_l2c_setting)
+{
+	struct save_regs *regs = sbi_scratch_offset_ptr(scratch, save_regs_off);
+	struct sbi_trap_info trap = { 0 };
+	unsigned long l2c_addr;
+
+	regs->saved = true;
+
+	regs->mcache_ctl	= csr_read_allowed(CSR_MCACHE_CTL, (ulong)&trap);
+	regs->mcache_ctl2	= csr_read_allowed(CSR_MCACHE_CTL2, (ulong)&trap);
+	regs->mmisc_ctl		= csr_read_allowed(CSR_MMISC_CTL, (ulong)&trap);
+	regs->mpft_ctl		= csr_read_allowed(CSR_MPFT_CTL, (ulong)&trap);
+	regs->mslideleg		= csr_read_allowed(CSR_MSLIDELEG, (ulong)&trap);
+	regs->mxstatus		= csr_read_allowed(CSR_MXSTATUS, (ulong)&trap);
+
+	regs->pmacfg0		= csr_read_allowed(CSR_PMACFG0, (ulong)&trap);
+	regs->pmacfg1		= csr_read_allowed(CSR_PMACFG0 + 1, (ulong)&trap);
+	regs->pmacfg2		= csr_read_allowed(CSR_PMACFG0 + 2, (ulong)&trap);
+	regs->pmacfg3		= csr_read_allowed(CSR_PMACFG0 + 3, (ulong)&trap);
+	regs->pmaaddr0		= csr_read_allowed(CSR_PMAADDR0, (ulong)&trap);
+	regs->pmaaddr1		= csr_read_allowed(CSR_PMAADDR0 + 1, (ulong)&trap);
+	regs->pmaaddr2		= csr_read_allowed(CSR_PMAADDR0 + 2, (ulong)&trap);
+	regs->pmaaddr3		= csr_read_allowed(CSR_PMAADDR0 + 3, (ulong)&trap);
+	regs->pmaaddr4		= csr_read_allowed(CSR_PMAADDR0 + 4, (ulong)&trap);
+	regs->pmaaddr5		= csr_read_allowed(CSR_PMAADDR0 + 5, (ulong)&trap);
+	regs->pmaaddr6		= csr_read_allowed(CSR_PMAADDR0 + 6, (ulong)&trap);
+	regs->pmaaddr7		= csr_read_allowed(CSR_PMAADDR0 + 7, (ulong)&trap);
+	regs->pmaaddr8		= csr_read_allowed(CSR_PMAADDR0 + 8, (ulong)&trap);
+	regs->pmaaddr9		= csr_read_allowed(CSR_PMAADDR0 + 9, (ulong)&trap);
+	regs->pmaaddr10		= csr_read_allowed(CSR_PMAADDR0 + 10, (ulong)&trap);
+	regs->pmaaddr11		= csr_read_allowed(CSR_PMAADDR0 + 11, (ulong)&trap);
+	regs->pmaaddr12		= csr_read_allowed(CSR_PMAADDR0 + 12, (ulong)&trap);
+	regs->pmaaddr13		= csr_read_allowed(CSR_PMAADDR0 + 13, (ulong)&trap);
+	regs->pmaaddr14		= csr_read_allowed(CSR_PMAADDR0 + 14, (ulong)&trap);
+	regs->pmaaddr15		= csr_read_allowed(CSR_PMAADDR0 + 15, (ulong)&trap);
+
+	regs->slie		= csr_read_allowed(CSR_SLIE, (ulong)&trap);
+	regs->slip		= csr_read_allowed(CSR_SLIP, (ulong)&trap);
+
+	if (save_l2c_setting && cache_get_addr(&l2c_addr) == SBI_OK)
+		regs->l2c_ctl = readl((void*)(l2c_addr + L2C_CTL_OFFSET));
+}
+
+static void ae350_suspend_non_ret_restore(struct sbi_scratch *scratch, bool save_l2c_setting)
+{
+	struct save_regs *regs = sbi_scratch_offset_ptr(scratch, save_regs_off);
+	struct sbi_trap_info trap = { 0 };
+	unsigned long l2c_addr;
+
+	if (regs->saved != true)
+		return;
+
+	csr_write_allowed(CSR_MCACHE_CTL, (ulong)&trap, regs->mcache_ctl);
+	csr_write_allowed(CSR_MCACHE_CTL2, (ulong)&trap, regs->mcache_ctl2);
+	csr_write_allowed(CSR_MMISC_CTL, (ulong)&trap, regs->mmisc_ctl);
+	csr_write_allowed(CSR_MPFT_CTL, (ulong)&trap, regs->mpft_ctl);
+	csr_write_allowed(CSR_MSLIDELEG, (ulong)&trap, regs->mslideleg);
+	csr_write_allowed(CSR_MXSTATUS, (ulong)&trap, regs->mxstatus);
+
+	csr_write_allowed(CSR_PMACFG0, (ulong)&trap, regs->pmacfg0);
+	csr_write_allowed(CSR_PMACFG0 + 1, (ulong)&trap, regs->pmacfg1);
+	csr_write_allowed(CSR_PMACFG0 + 2, (ulong)&trap, regs->pmacfg2);
+	csr_write_allowed(CSR_PMACFG0 + 3, (ulong)&trap, regs->pmacfg3);
+	csr_write_allowed(CSR_PMAADDR0, (ulong)&trap, regs->pmaaddr0);
+	csr_write_allowed(CSR_PMAADDR0 + 1, (ulong)&trap, regs->pmaaddr1);
+	csr_write_allowed(CSR_PMAADDR0 + 2, (ulong)&trap, regs->pmaaddr2);
+	csr_write_allowed(CSR_PMAADDR0 + 3, (ulong)&trap, regs->pmaaddr3);
+	csr_write_allowed(CSR_PMAADDR0 + 4, (ulong)&trap, regs->pmaaddr4);
+	csr_write_allowed(CSR_PMAADDR0 + 5, (ulong)&trap, regs->pmaaddr5);
+	csr_write_allowed(CSR_PMAADDR0 + 6, (ulong)&trap, regs->pmaaddr6);
+	csr_write_allowed(CSR_PMAADDR0 + 7, (ulong)&trap, regs->pmaaddr7);
+	csr_write_allowed(CSR_PMAADDR0 + 8, (ulong)&trap, regs->pmaaddr8);
+	csr_write_allowed(CSR_PMAADDR0 + 9, (ulong)&trap, regs->pmaaddr9);
+	csr_write_allowed(CSR_PMAADDR0 + 10, (ulong)&trap, regs->pmaaddr10);
+	csr_write_allowed(CSR_PMAADDR0 + 11, (ulong)&trap, regs->pmaaddr11);
+	csr_write_allowed(CSR_PMAADDR0 + 12, (ulong)&trap, regs->pmaaddr12);
+	csr_write_allowed(CSR_PMAADDR0 + 13, (ulong)&trap, regs->pmaaddr13);
+	csr_write_allowed(CSR_PMAADDR0 + 14, (ulong)&trap, regs->pmaaddr14);
+	csr_write_allowed(CSR_PMAADDR0 + 15, (ulong)&trap, regs->pmaaddr15);
+
+	csr_write_allowed(CSR_SLIE, (ulong)&trap, regs->slie);
+	csr_write_allowed(CSR_SLIP, (ulong)&trap, regs->slip);
+
+	if (save_l2c_setting && cache_get_addr(&l2c_addr) == SBI_OK)
+		writel(regs->l2c_ctl, (void*)(l2c_addr + L2C_CTL_OFFSET));
 }
 
 static inline void wait_until_harts_sleep(u32 this_hart, u32 sleep_type, u32 sleep_status)
@@ -119,6 +209,8 @@ static int ae350_hart_stop(void)
 		if (rc)
 			sbi_hart_hang();
 
+		ae350_suspend_non_ret_save(sbi_scratch_thishart_ptr(), false);
+
 		ae350_disable_coherency();
 
 	} else {/* Hotplug */
@@ -144,6 +236,8 @@ static int ae350_hart_stop(void)
 		if (rc)
 			sbi_hart_hang();
 
+		ae350_suspend_non_ret_save(sbi_scratch_thishart_ptr(), false);
+
 		ae350_disable_coherency();
 	}
 
@@ -157,7 +251,8 @@ static int ae350_hart_stop(void)
 
 static void ae350_hart_resume(void)
 {
-	return;
+	if (save_regs_off)
+		ae350_suspend_non_ret_restore(sbi_scratch_thishart_ptr(), true);
 }
 
 static const struct sbi_hsm_device andes_smu_hsm = {
@@ -203,6 +298,8 @@ static int ae350_system_suspend(u32 sleep_type, unsigned long mmode_resume_addr)
 
 		wait_until_harts_sleep(hartid, sleep_type, DEEP_SLEEP_STATUS);
 
+		ae350_suspend_non_ret_save(sbi_scratch_thishart_ptr(), true);
+
 		ae350_disable_coherency();
 		/* disable L2 cache */
 		cache_disable();
@@ -235,6 +332,11 @@ static void ae350_smu_device_init(void)
 	if (!rc) {
 		sbi_hsm_set_device(&andes_smu_hsm);
 		sbi_system_suspend_set_device(&andes_smu_susp);
+
+		/* Allocate space for regs that need to be saved/restored */
+		save_regs_off = sbi_scratch_alloc_offset(sizeof(struct save_regs));
+		if (!save_regs_off)
+			sbi_hart_hang();
 	}
 }
 
@@ -254,6 +356,9 @@ static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
 {
 	if (cold_boot)
 		return fdt_cache_init();
+
+	if (save_regs_off)
+		ae350_suspend_non_ret_restore(sbi_scratch_thishart_ptr(), false);
 
 	return 0;
 }
