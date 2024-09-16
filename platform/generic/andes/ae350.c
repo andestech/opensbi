@@ -121,7 +121,7 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
 {
 	if (cold_boot)
-		fdt_cache_init();
+		return fdt_cache_init();
 
 	return 0;
 }

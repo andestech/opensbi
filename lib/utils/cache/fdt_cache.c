@@ -36,11 +36,16 @@ int fdt_cache_driver_init(void *fdt, struct fdt_cache *drv)
 	return rc;
 }
 
-void fdt_cache_init(void)
+int fdt_cache_init(void)
 {
-	int pos;
+	int pos, rc;
 	void *fdt = fdt_get_address();
 
-	for (pos = 0; pos < fdt_cache_drivers_size; pos++)
-		fdt_cache_driver_init(fdt, fdt_cache_drivers[pos]);
+	for (pos = 0; pos < fdt_cache_drivers_size; pos++) {
+		rc = fdt_cache_driver_init(fdt, fdt_cache_drivers[pos]);
+		if (rc && rc != SBI_ENODEV)
+			return rc;
+	}
+
+	return 0;
 }

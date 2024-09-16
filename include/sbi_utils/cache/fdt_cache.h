@@ -27,7 +27,7 @@ int fdt_cache_driver_init(void *fdt, struct fdt_cache *drv);
  *
  * This function shall be invoked in final init.
  */
-void fdt_cache_init(void);
+int fdt_cache_init(void);
 
 #else
 
@@ -35,7 +35,7 @@ static inline int fdt_cache_driver_init(void *fdt, struct fdt_cache *drv)
 {
 	return 0;
 }
-static inline void fdt_cache_init(void) { }
+static inline int fdt_cache_init(void) { }
 
 #endif /* CONFIG_FDT_CACHE */
 
