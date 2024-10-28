@@ -333,6 +333,11 @@ static void ae350_smu_device_init(void)
 		sbi_hsm_set_device(&andes_smu_hsm);
 		sbi_system_suspend_set_device(&andes_smu_susp);
 
+		if ((csr_read(CSR_MARCHID) & 0xff) == 0x65)
+			rc = sbi_domain_root_add_memrange(smu.addr, 0x1000, 0x1000,
+							  SBI_DOMAIN_MEMREGION_MMIO |
+							  SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW);
+
 		/* Allocate space for regs that need to be saved/restored */
 		save_regs_off = sbi_scratch_alloc_offset(sizeof(struct save_regs));
 		if (!save_regs_off)
@@ -346,7 +351,6 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 		return 0;
 
 	pma_init();
-	ae350_smu_device_init();
 	trigger_init();
 
 	return 0;
@@ -354,8 +358,10 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 
 static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
 {
-	if (cold_boot)
+	if (cold_boot) {
+		ae350_smu_device_init();
 		return fdt_cache_init();
+	}
 
 	if (save_regs_off)
 		ae350_suspend_non_ret_restore(sbi_scratch_thishart_ptr(), false);
