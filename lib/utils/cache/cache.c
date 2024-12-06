@@ -64,3 +64,54 @@ int cache_get_addr(unsigned long *addr)
 
 	return cache->get_addr(addr);
 }
+
+/*
+ * L2C HPM helpers (Andes-specific)
+ */
+int cache_read_hpm_ctr(u64 *out_val)
+{
+	if (!cache)
+		return SBI_ENODEV;
+	if (!cache->read_hpm_ctr)
+		return SBI_ENOSYS;
+
+	return cache->read_hpm_ctr(out_val);
+}
+
+int cache_write_hpm_ctr(u64 val)
+{
+	if (!cache)
+		return SBI_ENODEV;
+	if (!cache->write_hpm_ctr)
+		return SBI_ENOSYS;
+
+	return cache->write_hpm_ctr(val);
+}
+
+int cache_start_hpm(u64 event_data)
+{
+	if (!cache)
+		return SBI_ENODEV;
+	if (!cache->start_hpm)
+		return SBI_ENOSYS;
+
+	return cache->start_hpm(event_data);
+}
+
+int cache_stop_hpm(void)
+{
+	if (!cache)
+		return SBI_ENODEV;
+	if (!cache->stop_hpm)
+		return SBI_ENOSYS;
+
+	return cache->stop_hpm();
+}
+
+bool cache_hpm_idle(void)
+{
+	if (!cache || !cache->hpm_idle)
+		return false;
+
+	return cache->hpm_idle();
+}

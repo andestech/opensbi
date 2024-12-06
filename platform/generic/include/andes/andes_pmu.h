@@ -13,6 +13,14 @@
 
 #ifdef CONFIG_ANDES_PMU
 
+/*
+ * There are 3 Andes firmware events monitored by L2C performance counter now.
+ * 0 : Total L2-cache access count
+ * 1 : L2-cache access count
+ * 2 : L2-cache miss count
+ */
+#define ANDES_CUSTOM_FW_EVENT_MAX	3
+
 int andes_pmu_init(const struct fdt_match *match);
 int andes_pmu_extensions_init(const struct fdt_match *match,
 			      struct sbi_hart_features *hfeatures);

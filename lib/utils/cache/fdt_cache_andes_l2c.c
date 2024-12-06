@@ -17,16 +17,14 @@
 #include <sbi_utils/cache/fdt_cache.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <andes/andes.h>
+#include <andes/andes_pmu.h>
 
 /* clang-format off */
 
 /* L2 cache registers */
 #define L2C_REG_CFG_OFFSET		0
 #define L2C_REG_CTL_OFFSET		0x8
-#define L2C_HPM_C0_CTL_OFFSET		0x10
-#define L2C_HPM_C1_CTL_OFFSET		0x18
-#define L2C_HPM_C2_CTL_OFFSET		0x20
-#define L2C_HPM_C3_CTL_OFFSET		0x28
+#define L2C_REG_HPM_CTL_OFFSET		0x10
 #define L2C_REG_C0_CMD_OFFSET		0x40
 #define L2C_REG_C0_ACC_OFFSET		0x48
 #define L2C_REG_C1_CMD_OFFSET		0x50
@@ -37,6 +35,10 @@
 #define L2C_REG_C3_ACC_OFFSET		0x78
 #define L2C_REG_C0_STATUS_OFFSET	0x80
 #define L2C_REG_C0_HPM_OFFSET		0x200
+
+/* L2C HPM event */
+#define L2C_HPM_CTL_SEL0_MSK		0xFF
+#define L2C_HPM_EVT_RESET		0xFF
 
 /* Per-hart offsets */
 #define CCTL_CMD_REG(hart)	(L2C_REG_C0_CMD_OFFSET + (hart) * (l2c.cmd_stride))
@@ -136,11 +138,76 @@ static int andes_l2c_disable(void)
 	       : SBI_OK;
 }
 
+static int andes_l2c_read_hpm_ctr(u64 *out_val)
+{
+	u32 vall = readl((void *)(l2c.addr + L2C_REG_C0_HPM_OFFSET));
+	u32 valh = readl((void *)(l2c.addr + L2C_REG_C0_HPM_OFFSET + 4));
+	*out_val = ((u64)valh << 32) | vall;
+
+	return 0;
+}
+
+static int andes_l2c_write_hpm_ctr(u64 val)
+{
+	writel((u32)val, (void *)(l2c.addr + L2C_REG_C0_HPM_OFFSET));
+	writel((u32)(val >> 32),
+	       (void *)(l2c.addr + L2C_REG_C0_HPM_OFFSET + 4));
+
+	return 0;
+}
+
+static int andes_l2c_start_hpm(uint64_t event_data)
+{
+	u32 hpm_ctl;
+
+	hpm_ctl = readl((void *)(l2c.addr + L2C_REG_HPM_CTL_OFFSET));
+
+	if (event_data < ANDES_CUSTOM_FW_EVENT_MAX) {
+		hpm_ctl = INSERT_FIELD(hpm_ctl, L2C_HPM_CTL_SEL0_MSK,
+				       event_data);
+		writel(hpm_ctl, (void *)(l2c.addr + L2C_REG_HPM_CTL_OFFSET));
+		return 0;
+	}
+
+	return SBI_EINVAL;
+}
+
+static int andes_l2c_stop_hpm(void)
+{
+	u32 hpm_ctl;
+
+	hpm_ctl = readl((void *)(l2c.addr + L2C_REG_HPM_CTL_OFFSET));
+	hpm_ctl = INSERT_FIELD(hpm_ctl, L2C_HPM_CTL_SEL0_MSK,
+			       L2C_HPM_EVT_RESET);
+	writel(hpm_ctl, (void *)(l2c.addr + L2C_REG_HPM_CTL_OFFSET));
+
+	return 0;
+}
+
+static bool andes_l2c_hpm_idle(void)
+{
+	u32 hpm_ctl;
+
+	hpm_ctl = readl((void *)(l2c.addr + L2C_REG_HPM_CTL_OFFSET));
+
+	return EXTRACT_FIELD(hpm_ctl, L2C_HPM_CTL_SEL0_MSK) ==
+	       L2C_HPM_EVT_RESET;
+}
+
 static struct cache andes_l2c = {
 	.enable	     = andes_l2c_enable,
 	.disable     = andes_l2c_disable,
 	.wbinval_all = andes_l2c_wbinval_all,
 	.get_addr    = andes_l2c_get_addr,
+
+	/*
+	 * L2C HPM helpers (Andes-specific)
+	 */
+	.read_hpm_ctr = andes_l2c_read_hpm_ctr,
+	.write_hpm_ctr = andes_l2c_write_hpm_ctr,
+	.start_hpm    = andes_l2c_start_hpm,
+	.stop_hpm     = andes_l2c_stop_hpm,
+	.hpm_idle     = andes_l2c_hpm_idle,
 };
 
 static int andes_l2c_init(void *fdt, int nodeoff, const struct fdt_match *match)

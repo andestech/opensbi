@@ -40,6 +40,15 @@ struct cache {
 	 * @return NULL if cache does not exist, else return cache base address
 	 */
 	int (*get_addr)(unsigned long *addr);
+
+	/*
+	 * L2C HPM helpers (Andes-specific)
+	 */
+	int (*read_hpm_ctr)(u64 *);
+	int (*write_hpm_ctr)(u64);
+	int (*start_hpm)(u64);
+	int (*stop_hpm)(void);
+	bool (*hpm_idle)(void);
 };
 
 /** Register a cache controller */
@@ -56,6 +65,15 @@ int cache_wbinval_all(void);
 
 /** Get the base address of cache */
 int cache_get_addr(unsigned long *addr);
+
+/*
+ * L2C HPM helpers (Andes-specific)
+ */
+int cache_read_hpm_ctr(u64 *);
+int cache_write_hpm_ctr(u64);
+int cache_start_hpm(u64);
+int cache_stop_hpm(void);
+bool cache_hpm_idle(void);
 
 #endif /* __ASSEMBLER__ */
 
