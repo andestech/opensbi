@@ -192,7 +192,7 @@ DTS Example: (Quad-core AX45MP)
 			interrupts = <9 4>;
 			interrupt-parent = <&plic0>;
 			clock-frequency = <19660800>;
-			current-speed = <38400>;
+			current-speed = <115200>;
 			reg-shift = <2>;
 			reg-offset = <32>;
 			reg-io-width = <4>;
