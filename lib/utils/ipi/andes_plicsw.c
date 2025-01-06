@@ -15,6 +15,7 @@
 #include <sbi/sbi_domain.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi_utils/ipi/andes_plicsw.h>
+#include <andes/remoteproc.h>
 
 struct plicsw_data plicsw;
 
@@ -52,6 +53,13 @@ static void plicsw_ipi_clear(u32 hart_index)
 
 	/* Claim */
 	u32 source = readl((void *)reg);
+
+#ifdef CONFIG_ANDES_REMOTEPROC
+	if (remoteproc_sp_enable) {
+		u32 hartid = current_hartid();
+		remoteproc_notify_mp_ipi(hartid, source);
+	}
+#endif
 
 	/* A successful claim will clear mip.MSIP */
 
@@ -97,7 +105,14 @@ int plicsw_cold_ipi_init(struct plicsw_data *plicsw)
 		enable_bit   = interrupt_id % 32;
 		enable_reg   = plicsw->addr + PLICSW_ENABLE_BASE +
 			       PLICSW_ENABLE_STRIDE * i + 4 * word_index;
+#ifdef CONFIG_ANDES_REMOTEPROC
+		if (i == remoteproc_mp_hartid)
+			writel(BIT(enable_bit) | (1 << SP_SEND_IPI_TO_MP), (void *)enable_reg);
+		else
+			writel(BIT(enable_bit), (void *)enable_reg);
+#else
 		writel(BIT(enable_bit), (void *)enable_reg);
+#endif
 	}
 
 	/* Add PLICSW region to the root domain */

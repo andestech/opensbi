@@ -27,6 +27,7 @@
 #include <andes/andes_sbi.h>
 #include <andes/andes.h>
 #include <andes/andes_pma.h>
+#include <andes/remoteproc.h>
 #include <andes/trigger.h>
 
 static struct smu_data smu = { 0 };
@@ -359,9 +360,12 @@ static int ae350_final_init(bool cold_boot, const struct fdt_match *match)
 static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
 {
 	if (cold_boot) {
+		remoteproc_init(cold_boot);
 		ae350_smu_device_init();
 		return fdt_cache_init();
 	}
+
+	remoteproc_init(cold_boot);
 
 	if (save_regs_off)
 		ae350_suspend_non_ret_restore(sbi_scratch_thishart_ptr(), false);

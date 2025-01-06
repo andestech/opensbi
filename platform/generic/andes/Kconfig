@@ -8,6 +8,10 @@ config ANDES_TRIGGER
 	bool "Andes Trigger support"
 	default n
 
+config ANDES_REMOTEPROC
+	bool "Andes Remoteproc support"
+	default n
+
 config ANDES_SBI
 	bool "Andes SBI support"
 	select ANDES_TRIGGER

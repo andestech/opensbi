@@ -11,6 +11,7 @@
 #include <sbi/sbi_bitops.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_types.h>
+#include <andes/remoteproc.h>
 #include <andes/andes_pma.h>
 #include <andes/trigger.h>
 #include <sbi_utils/cache/cache.h>
@@ -25,6 +26,8 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_PMA_FREE,
 	SBI_EXT_ANDES_PMA_PROBE,
 	SBI_EXT_ANDES_DCACHE_EN,
+	SBI_EXT_ANDES_REMOTEPROC_EN,
+	SBI_EXT_ANDES_REMOTEPROC_SEND_IPI,
 };
 
 static bool andes_cache_controllable(void)
@@ -103,6 +106,12 @@ int andes_sbi_vendor_ext_provider(long funcid,
 		break;
 	case SBI_EXT_ANDES_DCACHE_EN:
 		mcall_dcache_op(regs->a0);
+		break;
+	case SBI_EXT_ANDES_REMOTEPROC_EN:
+		remoteproc_ipi_enable(regs->a0);
+		break;
+	case SBI_EXT_ANDES_REMOTEPROC_SEND_IPI:
+		sbi_ipi_raw_send(regs->a0);
 		break;
 
 	default:
