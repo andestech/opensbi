@@ -320,6 +320,19 @@ static struct sbi_system_suspend_device andes_smu_susp = {
 	.system_suspend		= ae350_system_suspend,
 };
 
+static inline bool ae350_support_smepmp(void)
+{
+	unsigned long extensions[BITS_TO_LONGS(SBI_HART_EXT_MAX)] = { 0 };
+
+	if (fdt_parse_isa_extensions(fdt_get_address(), current_hartid(), extensions))
+		return false;
+
+	if (__test_bit(SBI_HART_EXT_SMEPMP, extensions))
+		return true;
+
+	return false;
+}
+
 static void ae350_smu_device_init(void)
 {
 	int rc;
@@ -334,7 +347,14 @@ static void ae350_smu_device_init(void)
 		sbi_hsm_set_device(&andes_smu_hsm);
 		sbi_system_suspend_set_device(&andes_smu_susp);
 
-		if ((csr_read(CSR_MARCHID) & 0xff) == 0x65)
+		/** Quirk!
+		 * The PMP entry is not enough on some Kavalan bitmaps
+		 * (e.g., ax45mpv has only 8), so we use smepmp to
+		 * determine if we need to setup pmp region for SMU device.
+		 * Only Makatau ax65, ax66 bitmap support smepmp, and they
+		 * have 16 PMP entries.
+		 */
+		if (ae350_support_smepmp())
 			rc = sbi_domain_root_add_memrange(smu.addr, 0x1000, 0x1000,
 							  SBI_DOMAIN_MEMREGION_MMIO |
 							  SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW);
