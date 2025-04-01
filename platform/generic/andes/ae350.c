@@ -145,6 +145,8 @@ static void ae350_suspend_non_ret_restore(struct sbi_scratch *scratch, bool save
 	csr_write_allowed(CSR_SLIE, (ulong)&trap, regs->slie);
 	csr_write_allowed(CSR_SLIP, (ulong)&trap, regs->slip);
 
+	regs->saved = false;
+
 	if (save_l2c_setting && cache_get_addr(&l2c_addr) == SBI_OK)
 		writel(regs->l2c_ctl, (void*)(l2c_addr + L2C_CTL_OFFSET));
 }
