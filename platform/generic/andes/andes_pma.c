@@ -40,7 +40,11 @@ static unsigned long andes_pma_read_num(unsigned int csr_num)
 
 	switch (csr_num) {
 	switchcase_csr_read_4(CSR_PMACFG0, ret)
+	switchcase_csr_read_4(CSR_PMACFG0 + 4, ret)
+	switchcase_csr_read_4(CSR_PMACFG0 + 8, ret)
 	switchcase_csr_read_16(CSR_PMAADDR0, ret)
+	switchcase_csr_read_16(CSR_PMAADDR0 + 16, ret)
+	switchcase_csr_read_16(CSR_PMAADDR0 + 32, ret)
 	default:
 		sbi_panic("%s: Unknown Andes PMA CSR %#x", __func__, csr_num);
 		break;
@@ -76,7 +80,11 @@ static void andes_pma_write_num(unsigned int csr_num, unsigned long val)
 
 	switch (csr_num) {
 	switchcase_csr_write_4(CSR_PMACFG0, val)
+	switchcase_csr_write_4(CSR_PMACFG0 + 4, val)
+	switchcase_csr_write_4(CSR_PMACFG0 + 8, val)
 	switchcase_csr_write_16(CSR_PMAADDR0, val)
+	switchcase_csr_write_16(CSR_PMAADDR0 + 16, val)
+	switchcase_csr_write_16(CSR_PMAADDR0 + 32, val)
 	default:
 		sbi_panic("%s: Unknown Andes PMA CSR %#x", __func__, csr_num);
 		break;
@@ -89,9 +97,117 @@ static void andes_pma_write_num(unsigned int csr_num, unsigned long val)
 #undef switchcase_csr_write
 }
 
-static inline bool not_napot(unsigned long addr, unsigned long size)
+static bool not_napot(unsigned long addr, unsigned long size)
 {
 	return ((size & (size - 1)) || (addr & (size - 1)));
+}
+
+static bool is_pma_entry_disable(char pmaxcfg)
+{
+	return (pmaxcfg & ANDES_PMACFG_ETYP_MASK) == ANDES_PMACFG_ETYP_OFF ?
+	       true : false;
+}
+
+union pmacfgx{
+        unsigned long val;
+#if __riscv_xlen == 64
+        char pmaxcfg[8];
+#elif __riscv_xlen == 32
+        char pmaxcfg[4];
+#else
+#error "Unexpected __riscv_xlen"
+#endif
+};
+
+static char get_pmaxcfg(int entry_id)
+{
+	unsigned int pmacfgx_addr;
+	unsigned int idx;
+	union pmacfgx pmacfgx;
+
+#if __riscv_xlen == 64
+	pmacfgx_addr = CSR_PMACFG0 + ((entry_id / 8) << 1);
+	idx = entry_id % 8;
+#elif __riscv_xlen == 32
+	pmacfgx_addr = CSR_PMACFG0 + (entry_id / 4);
+	idx = entry_id % 4;
+#else
+#error "Unexpected __riscv_xlen"
+#endif
+	pmacfgx.val = andes_pma_read_num(pmacfgx_addr);
+	return pmacfgx.pmaxcfg[idx];
+}
+
+static void set_pmaxcfg(int entry_id, char flags)
+{
+	unsigned int pmacfgx_addr;
+	unsigned int idx;
+	union pmacfgx pmacfgx;
+
+#if __riscv_xlen == 64
+	pmacfgx_addr = CSR_PMACFG0 + ((entry_id / 8) << 1);
+	idx = entry_id % 8;
+#elif __riscv_xlen == 32
+	pmacfgx_addr = CSR_PMACFG0 + (entry_id / 4);
+	idx = entry_id % 4;
+#else
+#error "Unexpected __riscv_xlen"
+#endif
+	pmacfgx.val = andes_pma_read_num(pmacfgx_addr);
+	pmacfgx.pmaxcfg[idx] = flags;
+	andes_pma_write_num(pmacfgx_addr, pmacfgx.val);
+}
+
+static void decode_pmaaddrx(int entry_id, unsigned long *out_start,
+			    unsigned long *out_size)
+{
+	unsigned long pmaaddr;
+	int k;
+
+	/*
+	 * (Assume $pmaaddr would never has value of all bits set)
+	 * Given $pmaaddr, let k = # of trailing 1s of $pmaaddr
+	 * out_size  = 2 ^ (k + 3)
+	 * out_start = 4 * ($pmaaddr + 1 - (out_size / 8))
+	 */
+
+	pmaaddr = andes_pma_read_num(CSR_PMAADDR0 + entry_id);
+	k = sbi_ffz(pmaaddr);
+	*out_size = 1 << (k + 3);
+	*out_start = (pmaaddr + 1 - (*out_size >> 3)) << 2;
+}
+
+static unsigned long encode_pmaaddrx(unsigned long addr, unsigned long size)
+{
+	return (addr >> 2) + (size >> 3) - 1;
+}
+
+static bool has_pma_region_overlap(unsigned long start, unsigned long size,
+				   int *conflict_id)
+{
+	unsigned long end = start + size - 1;
+	unsigned long _start, _size, _end;
+	char pmaxcfg;
+	int ppma_amount = pma_probe_ver() == PPMA_VERSION_48_ENRTY ? 48 : 16;
+
+	for (int i = 0; i < ppma_amount; i++) {
+		pmaxcfg = get_pmaxcfg(i);
+		if (is_pma_entry_disable(pmaxcfg))
+			continue;
+
+		decode_pmaaddrx(i, &_start, &_size);
+		_end = _start + _size - 1;
+
+		if (MAX(start, _start) <= MIN(end, _end)) {
+			sbi_printf(
+				"ERROR %s(): %#lx ~ %#lx overlaps with PMA%d: %#lx ~ %#lx\n",
+				__func__, start, end, i, _start, _end);
+			*conflict_id = i;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 static unsigned long andes_pma_setup(const struct andes_pma_region *pma_region,
@@ -99,32 +215,17 @@ static unsigned long andes_pma_setup(const struct andes_pma_region *pma_region,
 {
 	unsigned long size = pma_region->size;
 	unsigned long addr = pma_region->pa;
-	unsigned int pma_cfg_addr;
-	unsigned long pmacfg_val;
+	unsigned char flags = pma_region->flags;
 	unsigned long pmaaddr;
-	char *pmaxcfg;
 
-	/* Check for a 4KiB granularity NAPOT region*/
+	/* Check for a 4KiB granularity NAPOT region */
 	if (size < ANDES_PMA_GRANULARITY || not_napot(addr, size) ||
-	    !(pma_region->flags & ANDES_PMACFG_ETYP_NAPOT))
+	    !(flags & ANDES_PMACFG_ETYP_NAPOT))
 		return SBI_EINVAL;
 
-#if __riscv_xlen == 64
-	pma_cfg_addr = CSR_PMACFG0 + ((entry_id / 8) ? 2 : 0);
-	pmacfg_val = andes_pma_read_num(pma_cfg_addr);
-	pmaxcfg = (char *)&pmacfg_val + (entry_id % 8);
-#elif __riscv_xlen == 32
-	pma_cfg_addr = CSR_PMACFG0 + (entry_id / 4);
-	pmacfg_val = andes_pma_read_num(pma_cfg_addr);
-	pmaxcfg = (char *)&pmacfg_val + (entry_id % 4);
-#else
-#error "Unexpected __riscv_xlen"
-#endif
-	*pmaxcfg = pma_region->flags;
+	set_pmaxcfg(entry_id, flags);
 
-	andes_pma_write_num(pma_cfg_addr, pmacfg_val);
-
-	pmaaddr = (addr >> 2) + (size >> 3) - 1;
+	pmaaddr = encode_pmaaddrx(addr, size);
 
 	andes_pma_write_num(CSR_PMAADDR0 + entry_id, pmaaddr);
 
@@ -247,11 +348,13 @@ int andes_pma_setup_regions(const struct andes_pma_region *pma_regions,
 	unsigned long pa;
 	void *fdt;
 	int ret;
+	unsigned int ppma_amount =
+		pma_probe_ver() == PPMA_VERSION_48_ENRTY ? 48 : 16;
 
 	if (!pma_regions || !pma_regions_count)
 		return 0;
 
-	if (pma_regions_count > ANDES_MAX_PMA_REGIONS)
+	if (pma_regions_count > ppma_amount)
 		return SBI_EINVAL;
 
 	if ((mmsc & MMSC_CFG_PPMA_MASK) == 0)
@@ -293,7 +396,7 @@ int andes_pma_setup_regions(const struct andes_pma_region *pma_regions,
 
 static unsigned long pma_features_offset;
 
-static inline virtual_addr_t get_pma_table(int pma_idx)
+static virtual_addr_t get_pma_table(unsigned int pma_idx)
 {
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 	struct andes_pma_data *pma_data =
@@ -305,7 +408,7 @@ static inline virtual_addr_t get_pma_table(int pma_idx)
 	return pma_data->pma_user_table[pma_idx];
 }
 
-static inline int set_pma_table(int pma_idx, virtual_addr_t va)
+static int set_pma_table(int pma_idx, virtual_addr_t va)
 {
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 	struct andes_pma_data *pma_data =
@@ -315,35 +418,8 @@ static inline int set_pma_table(int pma_idx, virtual_addr_t va)
 		return SBI_EINVAL;
 
 	pma_data->pma_user_table[pma_idx] = va;
+
 	return SBI_OK;
-}
-
-static unsigned long read_pmaaddrx(int entry_id)
-{
-	return andes_pma_read_num(CSR_PMAADDR0 + entry_id);
-}
-
-static char read_pmaxcfg(int entry_id)
-{
-	unsigned long pmacfg_val;
-	unsigned long pmaxcfg_mask;
-
-	if (entry_id < 0 || entry_id >= ANDES_MAX_PMA_REGIONS) {
-		sbi_printf_highlight("ERROR %s(): non-existing PMA entry_id: %d\n",
-			  __func__, entry_id);
-		return 0;
-	}
-
-
-#if __riscv_xlen == 64
-	pmacfg_val = andes_pma_read_num(CSR_PMACFG0 + ((entry_id / 8) ? 2 : 0));
-	pmaxcfg_mask = 0xfful << (8 * (entry_id % 8));
-#else
-	pmacfg_val   = andes_pma_read_num(CSR_PMACFG0 + (entry_id / 4));
-	pmaxcfg_mask = 0xfful << (8 * (entry_id % 4));
-#endif
-
-	return EXTRACT_FIELD(pmacfg_val, pmaxcfg_mask);
 }
 
 static bool is_va_alias(unsigned long va)
@@ -352,42 +428,42 @@ static bool is_va_alias(unsigned long va)
 	 * Check if the va conflicts with the existing one in
 	 * pma_user_table[]
 	 */
-	for (int i = 0; i < ANDES_MAX_PMA_REGIONS; i++) {
+	int ppma_amount = pma_probe_ver() == PPMA_VERSION_48_ENRTY ? 48 : 16;
+
+	for (int i = 0; i < ppma_amount; i++) {
 		if (get_pma_table(i) != va)
 			continue;
-		sbi_printf_highlight("ERROR %s(): va %#lx conflicts\n", __func__,
-			  va);
+		sbi_printf_highlight("ERROR %s(): va %#lx conflicts\n",
+				     __func__, va);
 		return true;
 	}
-	return false;
-}
 
-static u8 pmaxcfg_etyp(int entry_id)
-{
-	/* pmaxcfg.ETYP will be 0 when it is set to 1 or 2 (reserved) */
-	u8 pmaxcfg_val = read_pmaxcfg(entry_id);
-	return EXTRACT_FIELD(pmaxcfg_val, PMACFG_ETYP_MASK);
+	return false;
 }
 
 static int allocate_pma_entry(unsigned long va, int *entry_id)
 {
-	/* Not allow va alias */
-	if(is_va_alias(va))
-		goto fail;
+	char pmaxcfg;
+	int ppma_amount = pma_probe_ver() == PPMA_VERSION_48_ENRTY ? 48 : 16;
 
-	for (int i = 0; i < ANDES_MAX_PMA_REGIONS; i++) {
-		if (pmaxcfg_etyp(i) != PMACFG_ETYP_OFF)
-			continue;
-		set_pma_table(i, va);
-		*entry_id	  = i;
-		return SBI_SUCCESS;
+	/* Not allow va alias */
+	if(is_va_alias(va)) {
+		sbi_printf_highlight(
+			"ERROR %s(): Cannot allocate PMA entry for %#lx\n",
+			__func__, va);
+
+		*entry_id = -1;
+		return SBI_ENOENT;
 	}
 
-fail:
-	sbi_printf_highlight("ERROR %s(): Cannot allocate PMA entry for %#lx\n", __func__,
-		   va);
-	*entry_id = -1;
-
+	for (int i = 0; i < ppma_amount; i++) {
+		pmaxcfg = get_pmaxcfg(i);
+		if (is_pma_entry_disable(pmaxcfg)) {
+			set_pma_table(i, va);
+			*entry_id = i;
+			return SBI_OK;
+		}
+	}
 	return SBI_ENOENT;
 }
 
@@ -396,183 +472,152 @@ bool mcall_probe_pma(void)
 	return !!EXTRACT_FIELD(csr_read(CSR_MMSC_CFG), MMSC_CFG_PPMA_MASK);
 }
 
-static int pmaaddrx_to_region(int entry_id, unsigned long *out_start,
-			      unsigned long *out_size)
-{
-	/*
-	 * Given entry id, calculate the region start and size
-	 * @entry_id the PMA entry id (only 0 ~ 15)
-	 *
-	 * @out_start output value for start address
-	 * @out_size output value for region size
-	 *
-	 * Return 0 on success
-	 * Return SBI_EINVAL if PMA is not in NAPOT mode
-	 */
-	unsigned long pmaaddrx_val;
-	int k;
-
-	if (pmaxcfg_etyp(entry_id) == PMACFG_ETYP_NAPOT) {
-		pmaaddrx_val = read_pmaaddrx(entry_id);
-		/**
-		* Given $pmaaddr, let k = # of trailing 1s
-		* size = 2^(k + 3)
-		* base = 4 * ($pmaaddr - (size / 8) + 1)
-		*/
-		k     = sbi_ffz(pmaaddrx_val);
-		*out_size  = 1 << (k + 3);
-		*out_start = (pmaaddrx_val - (*out_size >> 3) + 1) << 2;
-		return 0;
-	}
-
-	sbi_printf_highlight("ERROR %s(): PMA%d is not NAPOT mode (enable)\n", __func__,
-		   entry_id);
-	*out_size = *out_start = -1;
-	return SBI_EINVAL;
-}
-
-static bool has_pma_region_conflict(unsigned long start, unsigned long size, int *conflict_id)
-{
-	unsigned long _start, _size, _end, end;
-
-	end = start + size - 1;
-
-	for (int i = 0; i < ANDES_MAX_PMA_REGIONS; i++) {
-		if (pmaxcfg_etyp(i) == PMACFG_ETYP_OFF)
-			continue;
-
-		/* Decode start address and its size from pmaaddrx */
-		if (pmaaddrx_to_region(i, &_start, &_size))
-			return true;
-
-		_end = _start + _size - 1;
-
-		if (max(start, _start) <= min(end, _end)) {
-			sbi_printf_highlight("ERROR %s(): desired region %#lx - %#lx (size: %#lx) conflicts with the existing PMA%d: %#lx - %#lx (size: %#lx)\n",
-					__func__, start, end, size, i, _start, _end, _size);
-			*conflict_id = i;
-			return true;
-		}
-	}
-
-	return false;
-}
-
 int mcall_set_pma(unsigned long pa, unsigned long va, unsigned long size)
 {
-	char *pmaxcfg;
-	int rc, pma_cfg, conflict_id = -1, entry_id;
-	unsigned long pmaaddr_val, pmacfg_val;
+	int conflict_id = -1;
+	int entry_id;
+	int rc;
+	unsigned long pmaaddr;
+	char pmaxcfg;
 
 	/* Sanity check */
 	if (!mcall_probe_pma()) {
-		sbi_printf_highlight("ERROR %s(): platform does not support PPMA.\n",
-			  __func__);
-		goto fail;
+		sbi_printf_highlight(
+			"ERROR %s(): platform does not support PPMA.\n",
+			__func__);
+		return SBI_ERR_NOT_SUPPORTED;
+	}
+
+	if (!va) {
+		sbi_printf_highlight(
+			"ERROR %s(): expecting non-zero va\n", __func__);
+		return SBI_EFAIL;
 	}
 
 	/* Check size is 4KiB granularity and is power of 2 */
 	if (size < ANDES_PMA_GRANULARITY || not_napot(pa, size)) {
-		sbi_printf_highlight("ERROR %s(): %#lx - %#lx (size: %#lx) is not a 4KiB granularity NAPOT region\n",
-			  __func__, pa, pa + size - 1, size);
-		goto fail;
+		sbi_printf_highlight(
+			"ERROR %s(): %#lx - %#lx (size: %#lx) is not a 4KiB granularity NAPOT region\n",
+			__func__, pa, pa + size - 1, size);
+		return SBI_ERR_INVALID_PARAM;
 	}
 
-	/* Not allow region overlapping */
-	if (has_pma_region_conflict(pa, size, &conflict_id)) {
+	if (has_pma_region_overlap(pa, size, &conflict_id)) {
 		sbi_printf_highlight(
 			"ERROR %s(): PMA region overlaps with PMA%d used by va=%#lx\n",
 			__func__, conflict_id,
 			get_pma_table(conflict_id));
-		goto fail;
+		return SBI_ERR_INVALID_PARAM;
 	}
-
-	/* Encode the start address and size */
-	pmaaddr_val = (pa >> 2) + (size >> 3) - 1;
 
 	rc = allocate_pma_entry(va, &entry_id);
 	if (rc)
 		return SBI_ENOENT;
 
-#if __riscv_xlen == 64
-	pma_cfg	   = CSR_PMACFG0 + ((entry_id / 8) ? 2 : 0);
-	pmacfg_val = andes_pma_read_num(pma_cfg);
-	pmaxcfg	   = (char *)&pmacfg_val + (entry_id % 8);
-	*pmaxcfg   = 0;
-	*pmaxcfg |= PMACFG_ETYP_NAPOT;
-	*pmaxcfg |= PMACFG_MTYP_NOCACHE_BUFFER;
-#else
-	pma_cfg	     = CSR_PMACFG0 + entry_id / 4;
-	pmacfg_val   = andes_pma_read_num(pma_cfg);
-	pmaxcfg	     = (char *)&pmacfg_val + (entry_id % 4);
-	*pmaxcfg     = 0;
-	*pmaxcfg |= PMACFG_ETYP_NAPOT;
-	*pmaxcfg |= PMACFG_MTYP_NOCACHE_BUFFER;
-#endif
+	pmaxcfg = ANDES_PMACFG_ETYP_NAPOT | ANDES_PMACFG_MTYP_MEM_NON_CACHE_BUF;
+	set_pmaxcfg(entry_id, pmaxcfg);
 
-	/* Set pmaxcfg and pmaaddrx */
-	andes_pma_write_num(pma_cfg, pmacfg_val);
-	andes_pma_write_num(CSR_PMAADDR0 + entry_id, pmaaddr_val);
+	pmaaddr = encode_pmaaddrx(pa, size);
+	andes_pma_write_num(CSR_PMAADDR0 + entry_id, pmaaddr);
 
-	if (andes_pma_read_num(CSR_PMAADDR0 + entry_id) != pmaaddr_val) {
+	if (andes_pma_read_num(CSR_PMAADDR0 + entry_id) != pmaaddr) {
 		sbi_printf_highlight(
 			"ERROR %s(): Failed to set the pmaaddr%d to desired value\n",
 			__func__, entry_id);
 		return SBI_EFAIL;
 	}
 
-	return 0;
-
-fail:
-	return SBI_EINVAL;
+	return SBI_OK;
 }
 
 int mcall_free_pma(unsigned long va)
 {
-	unsigned long pmacfg_val;
-	int pma_cfg;
-	char *pmaxcfg;
+	char pmaxcfg;
+	int ppma_amount = pma_probe_ver() == PPMA_VERSION_48_ENRTY ? 48 : 16;
+	int entry_id;
 
-	for (int i = 0; i < ANDES_MAX_PMA_REGIONS; i++) {
-		if (get_pma_table(i) != va)
-			continue;
-
-		if (pmaxcfg_etyp(i) == PMACFG_ETYP_OFF)
-			sbi_panic(
-				"ERROR %s(): expecting PMA%d is enabled for %#lx\n",
-				__func__, i, va);
-
-		/* Free $pmacfg */
-#if __riscv_xlen == 64
-		pma_cfg	   = CSR_PMACFG0 + ((i / 8) ? 2 : 0);
-		pmacfg_val = andes_pma_read_num(pma_cfg);
-		pmaxcfg	   = (char *)&pmacfg_val + (i % 8);
-		*pmaxcfg   = PMACFG_ETYP_OFF;
-#else
-		pma_cfg	   = CSR_PMACFG0 + i / 4;
-		pmacfg_val = andes_pma_read_num(pma_cfg);
-		pmaxcfg	   = (char *)&pmacfg_val + (i % 4);
-		*pmaxcfg   = PMACFG_ETYP_OFF;
-#endif
-		andes_pma_write_num(pma_cfg, pmacfg_val);
-
-		/* Free $pmaaddrx */
-		andes_pma_write_num(CSR_PMAADDR0 + i, 0x0);
-
-		/* Free the entry */
-		set_pma_table(i, 0x0);
-
-		return 0;
+	/* Sanity check */
+	if (!mcall_probe_pma()) {
+		sbi_printf_highlight(
+			"ERROR %s(): platform does not support PPMA.\n",
+			__func__);
+		return SBI_ERR_NOT_SUPPORTED;
 	}
 
-	return 0;
+	if (!va) {
+		sbi_printf_highlight(
+			"ERROR %s(): expecting non-zero va\n", __func__);
+		return SBI_EFAIL;
+	}
+
+	for (entry_id = 0; entry_id < ppma_amount; entry_id++) {
+		if (get_pma_table(entry_id) == va)
+			break;
+	}
+
+	if (entry_id == ppma_amount) {
+		sbi_dprintf(
+			"ERROR %s(): va %#lx has never registered with PPMA\n",
+			__func__, va);
+		return SBI_EFAIL;
+	}
+
+	pmaxcfg = get_pmaxcfg(entry_id);
+	if (is_pma_entry_disable(pmaxcfg)) {
+		sbi_printf_highlight(
+			"ERROR %s(): expecting PMA%d is enabled for %#lx\n",
+			__func__, entry_id, va);
+
+		return SBI_EFAIL;
+	}
+
+	set_pmaxcfg(entry_id, ANDES_PMACFG_ETYP_OFF);
+	andes_pma_write_num(CSR_PMAADDR0 + entry_id, 0x0);
+
+	/* Free the entry */
+	set_pma_table(entry_id, 0x0);
+
+	return SBI_OK;
+}
+
+/*
+ * For rv64:
+ * 	mmsc_cfg.MSC_EXT3 (bit-63) determine whether mmsc_cfg3 exist
+ *	mmsc_cfg3.PPMA_VER (bit-32_34) determine the PPMA version
+ * For rv32:
+ * 	mmsc_cfg.MSC_EXT   (bit-31) determine whether mmsc_cfg2 exist
+ * 	mmsc_cfg2.MSC_EXT3 (bit-31) determine whether mmsc_cfg3 exist
+ * 	mmsc_cfg3.MSC_EXT4 (bit-31) determine whether mmsc_cfg4 exist
+ * 	mmsc_cfg4.PPMA_VER (bit-0_2) determine the PPMA version
+ * For the value of PPMA_VER:
+ * 	0: 16 entry version -> PPMA_VERSION_16_ENRTY
+ * 	2: 48 entry version -> PPMA_VERSION_48_ENRTY
+ * 	others: reserved
+ *
+ * Since currrently only 2 legal versions exist, a single bit is used to
+ * determine the version (i.e., the middle bit of the field PPMA_VER for
+ * the value 0 (b000) or value 2 (b010)).
+ */
+int pma_probe_ver()
+{
+#if __riscv_xlen == 64
+	if (csr_read(CSR_MMSC_CFG) & BIT(63) &&
+	    csr_read(CSR_MMSC_CFG3) & BIT(33))
+	    	return PPMA_VERSION_48_ENRTY;
+#else
+	if (csr_read(CSR_MMSC_CFG) & BIT(31) &&
+	    csr_read(CSR_MMSC_CFG2) & BIT(31) &&
+	    csr_read(CSR_MMSC_CFG3) & BIT(31) &&
+	    csr_read(CSR_MMSC_CFG4) & BIT(1))
+		return PPMA_VERSION_48_ENRTY;
+#endif
+	else
+		return PPMA_VERSION_16_ENRTY;
 }
 
 int pma_init(void)
 {
-	/*
-	 * Allocate PMA mapping table in every hart's scratch region
-	 */
+	/* Allocate PMA mapping table in every hart's scratch region */
 	pma_features_offset = sbi_scratch_alloc_offset(
 					sizeof(struct andes_pma_data));
 	if (!pma_features_offset)

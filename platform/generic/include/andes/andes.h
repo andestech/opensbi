@@ -63,6 +63,8 @@
 #define CSR_MDCM_CFG		0xfc1
 #define CSR_MMSC_CFG		0xfc2
 #define CSR_MMSC_CFG2		0xfc3
+#define CSR_MMSC_CFG3		0xfc4
+#define CSR_MMSC_CFG4		0xfc5
 #define CSR_MVEC_CFG		0xfc7
 #define CSR_MMSC_CFG_PFT_MASK	(1 << 4)
 #define CSR_MMSC_CFG_L2C_MASK	(1UL << 46)

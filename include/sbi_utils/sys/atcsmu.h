@@ -77,6 +77,11 @@ struct smu_data {
 	unsigned long addr;
 };
 
+struct pma_regs {
+	unsigned long pmacfgX[12];
+	unsigned long pmaaddrX[48];
+};
+
 struct save_regs {
 	unsigned long saved;
 	unsigned long mcache_ctl;
@@ -85,31 +90,11 @@ struct save_regs {
 	unsigned long mpft_ctl;
 	unsigned long mslideleg;
 	unsigned long mxstatus;
-	unsigned long pmacfg0;
-	unsigned long pmacfg1;
-	unsigned long pmacfg2;
-	unsigned long pmacfg3;
-	unsigned long pmaaddr0;
-	unsigned long pmaaddr1;
-	unsigned long pmaaddr2;
-	unsigned long pmaaddr3;
-	unsigned long pmaaddr4;
-	unsigned long pmaaddr5;
-	unsigned long pmaaddr6;
-	unsigned long pmaaddr7;
-	unsigned long pmaaddr8;
-	unsigned long pmaaddr9;
-	unsigned long pmaaddr10;
-	unsigned long pmaaddr11;
-	unsigned long pmaaddr12;
-	unsigned long pmaaddr13;
-	unsigned long pmaaddr14;
-	unsigned long pmaaddr15;
 	unsigned long slie;
 	unsigned long slip;
 	unsigned long l2c_ctl;
+	struct pma_regs pma_regs;
 };
-
 
 int smu_set_wakeup_events(struct smu_data *smu, u32 events, u32 hartid);
 bool smu_support_sleep_mode(struct smu_data *smu, u32 sleep_mode, u32 hartid);

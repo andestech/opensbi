@@ -62,6 +62,84 @@ static inline void ae350_enable_coherency_warmboot(void)
 	_start_warm();
 }
 
+static void save_pma_regs(struct pma_regs *pma_regs, struct sbi_trap_info *trapp)
+{
+#define pma_csr_read_allowed(ptr, csr, trap)		\
+	(*(ptr)) = csr_read_allowed(csr, trap)
+#define pma_csr_read_allowed_2(ptr, csr, trap) 		\
+	pma_csr_read_allowed(ptr + 0, csr + 0, trap);	\
+	pma_csr_read_allowed(ptr + 1, csr + 1, trap)
+#define pma_csr_read_allowed_4(ptr, csr, trap) 		\
+	pma_csr_read_allowed_2(ptr + 0, csr + 0, trap); \
+	pma_csr_read_allowed_2(ptr + 2, csr + 2, trap)
+#define pma_csr_read_allowed_8(ptr, csr, trap) 		\
+	pma_csr_read_allowed_4(ptr + 0, csr + 0, trap); \
+	pma_csr_read_allowed_4(ptr + 4, csr + 4, trap)
+#define pma_csr_read_allowed_16(ptr, csr, trap) 	\
+	pma_csr_read_allowed_8(ptr + 0, csr + 0, trap); \
+	pma_csr_read_allowed_8(ptr + 8, csr + 8, trap)
+
+	pma_csr_read_allowed_4(pma_regs->pmacfgX, CSR_PMACFG0, (ulong)trapp);
+	if (pma_probe_ver() == PPMA_VERSION_48_ENRTY) {
+		pma_csr_read_allowed_4(pma_regs->pmacfgX + 4, CSR_PMACFG0, (ulong)trapp);
+		pma_csr_read_allowed_4(pma_regs->pmacfgX + 8, CSR_PMACFG0, (ulong)trapp);
+	}
+
+	pma_csr_read_allowed_16(pma_regs->pmaaddrX, CSR_PMAADDR0, (ulong)trapp);
+	if (pma_probe_ver() == PPMA_VERSION_48_ENRTY) {
+		pma_csr_read_allowed_16(pma_regs->pmaaddrX + 16, CSR_PMAADDR0, (ulong)trapp);
+		pma_csr_read_allowed_16(pma_regs->pmaaddrX + 32, CSR_PMAADDR0, (ulong)trapp);
+	}
+
+#undef pma_csr_read_allowed_16
+#undef pma_csr_read_allowed_8
+#undef pma_csr_read_allowed_4
+#undef pma_csr_read_allowed_2
+#undef pma_csr_read_allowed
+}
+
+static void restore_pma_regs(struct pma_regs *pma_regs, struct sbi_trap_info *trapp)
+{
+#define pma_csr_write_allowed(csr, trap, ptr)			\
+	csr_write_allowed(csr, trap, *(ptr))
+#define pma_csr_write_allowed_2(csr, trap, ptr)			\
+	pma_csr_write_allowed(csr + 0, trap, ptr + 0);		\
+	pma_csr_write_allowed(csr + 1, trap, ptr + 1)
+#define pma_csr_write_allowed_4(csr, trap, ptr)			\
+	pma_csr_write_allowed_2(csr + 0, trap, ptr + 0);	\
+	pma_csr_write_allowed_2(csr + 2, trap, ptr + 2)
+#define pma_csr_write_allowed_8(csr, trap, ptr) 		\
+	pma_csr_write_allowed_4(csr + 0, trap, ptr + 0);	\
+	pma_csr_write_allowed_4(csr + 4, trap, ptr + 4)
+#define pma_csr_write_allowed_16(csr, trap, ptr) 		\
+	pma_csr_write_allowed_8(csr + 0, trap, ptr + 0); 	\
+	pma_csr_write_allowed_8(csr + 8, trap, ptr + 8)
+
+	pma_csr_write_allowed_4(CSR_PMACFG0, (ulong)trapp,
+	 			pma_regs->pmacfgX);
+	if (pma_probe_ver() == PPMA_VERSION_48_ENRTY) {
+		pma_csr_write_allowed_4(CSR_PMACFG0 + 4, (ulong)trapp,
+					pma_regs->pmacfgX + 4);
+		pma_csr_write_allowed_4(CSR_PMACFG0 + 8, (ulong)trapp,
+					pma_regs->pmacfgX + 8);
+	}
+
+	pma_csr_write_allowed_16(CSR_PMAADDR0, (ulong)trapp,
+				 pma_regs->pmaaddrX);
+	if (pma_probe_ver() == PPMA_VERSION_48_ENRTY) {
+		pma_csr_write_allowed_16(CSR_PMAADDR0 + 16, (ulong)trapp,
+					 pma_regs->pmaaddrX + 16);
+		pma_csr_write_allowed_16(CSR_PMAADDR0 + 32, (ulong)trapp,
+					 pma_regs->pmaaddrX + 32);
+	}
+
+#undef pma_csr_write_allowed_16
+#undef pma_csr_write_allowed_8
+#undef pma_csr_write_allowed_4
+#undef pma_csr_write_allowed_2
+#undef pma_csr_write_allowed
+}
+
 static void ae350_suspend_non_ret_save(struct sbi_scratch *scratch, bool save_l2c_setting)
 {
 	struct save_regs *regs = sbi_scratch_offset_ptr(scratch, save_regs_off);
@@ -76,30 +154,10 @@ static void ae350_suspend_non_ret_save(struct sbi_scratch *scratch, bool save_l2
 	regs->mpft_ctl		= csr_read_allowed(CSR_MPFT_CTL, (ulong)&trap);
 	regs->mslideleg		= csr_read_allowed(CSR_MSLIDELEG, (ulong)&trap);
 	regs->mxstatus		= csr_read_allowed(CSR_MXSTATUS, (ulong)&trap);
-
-	regs->pmacfg0		= csr_read_allowed(CSR_PMACFG0, (ulong)&trap);
-	regs->pmacfg1		= csr_read_allowed(CSR_PMACFG0 + 1, (ulong)&trap);
-	regs->pmacfg2		= csr_read_allowed(CSR_PMACFG0 + 2, (ulong)&trap);
-	regs->pmacfg3		= csr_read_allowed(CSR_PMACFG0 + 3, (ulong)&trap);
-	regs->pmaaddr0		= csr_read_allowed(CSR_PMAADDR0, (ulong)&trap);
-	regs->pmaaddr1		= csr_read_allowed(CSR_PMAADDR0 + 1, (ulong)&trap);
-	regs->pmaaddr2		= csr_read_allowed(CSR_PMAADDR0 + 2, (ulong)&trap);
-	regs->pmaaddr3		= csr_read_allowed(CSR_PMAADDR0 + 3, (ulong)&trap);
-	regs->pmaaddr4		= csr_read_allowed(CSR_PMAADDR0 + 4, (ulong)&trap);
-	regs->pmaaddr5		= csr_read_allowed(CSR_PMAADDR0 + 5, (ulong)&trap);
-	regs->pmaaddr6		= csr_read_allowed(CSR_PMAADDR0 + 6, (ulong)&trap);
-	regs->pmaaddr7		= csr_read_allowed(CSR_PMAADDR0 + 7, (ulong)&trap);
-	regs->pmaaddr8		= csr_read_allowed(CSR_PMAADDR0 + 8, (ulong)&trap);
-	regs->pmaaddr9		= csr_read_allowed(CSR_PMAADDR0 + 9, (ulong)&trap);
-	regs->pmaaddr10		= csr_read_allowed(CSR_PMAADDR0 + 10, (ulong)&trap);
-	regs->pmaaddr11		= csr_read_allowed(CSR_PMAADDR0 + 11, (ulong)&trap);
-	regs->pmaaddr12		= csr_read_allowed(CSR_PMAADDR0 + 12, (ulong)&trap);
-	regs->pmaaddr13		= csr_read_allowed(CSR_PMAADDR0 + 13, (ulong)&trap);
-	regs->pmaaddr14		= csr_read_allowed(CSR_PMAADDR0 + 14, (ulong)&trap);
-	regs->pmaaddr15		= csr_read_allowed(CSR_PMAADDR0 + 15, (ulong)&trap);
-
 	regs->slie		= csr_read_allowed(CSR_SLIE, (ulong)&trap);
 	regs->slip		= csr_read_allowed(CSR_SLIP, (ulong)&trap);
+
+	save_pma_regs(&regs->pma_regs, &trap);
 
 	if (save_l2c_setting && cache_get_addr(&l2c_addr) == SBI_OK)
 		regs->l2c_ctl = readl((void*)(l2c_addr + L2C_CTL_OFFSET));
@@ -120,30 +178,10 @@ static void ae350_suspend_non_ret_restore(struct sbi_scratch *scratch, bool save
 	csr_write_allowed(CSR_MPFT_CTL, (ulong)&trap, regs->mpft_ctl);
 	csr_write_allowed(CSR_MSLIDELEG, (ulong)&trap, regs->mslideleg);
 	csr_write_allowed(CSR_MXSTATUS, (ulong)&trap, regs->mxstatus);
-
-	csr_write_allowed(CSR_PMACFG0, (ulong)&trap, regs->pmacfg0);
-	csr_write_allowed(CSR_PMACFG0 + 1, (ulong)&trap, regs->pmacfg1);
-	csr_write_allowed(CSR_PMACFG0 + 2, (ulong)&trap, regs->pmacfg2);
-	csr_write_allowed(CSR_PMACFG0 + 3, (ulong)&trap, regs->pmacfg3);
-	csr_write_allowed(CSR_PMAADDR0, (ulong)&trap, regs->pmaaddr0);
-	csr_write_allowed(CSR_PMAADDR0 + 1, (ulong)&trap, regs->pmaaddr1);
-	csr_write_allowed(CSR_PMAADDR0 + 2, (ulong)&trap, regs->pmaaddr2);
-	csr_write_allowed(CSR_PMAADDR0 + 3, (ulong)&trap, regs->pmaaddr3);
-	csr_write_allowed(CSR_PMAADDR0 + 4, (ulong)&trap, regs->pmaaddr4);
-	csr_write_allowed(CSR_PMAADDR0 + 5, (ulong)&trap, regs->pmaaddr5);
-	csr_write_allowed(CSR_PMAADDR0 + 6, (ulong)&trap, regs->pmaaddr6);
-	csr_write_allowed(CSR_PMAADDR0 + 7, (ulong)&trap, regs->pmaaddr7);
-	csr_write_allowed(CSR_PMAADDR0 + 8, (ulong)&trap, regs->pmaaddr8);
-	csr_write_allowed(CSR_PMAADDR0 + 9, (ulong)&trap, regs->pmaaddr9);
-	csr_write_allowed(CSR_PMAADDR0 + 10, (ulong)&trap, regs->pmaaddr10);
-	csr_write_allowed(CSR_PMAADDR0 + 11, (ulong)&trap, regs->pmaaddr11);
-	csr_write_allowed(CSR_PMAADDR0 + 12, (ulong)&trap, regs->pmaaddr12);
-	csr_write_allowed(CSR_PMAADDR0 + 13, (ulong)&trap, regs->pmaaddr13);
-	csr_write_allowed(CSR_PMAADDR0 + 14, (ulong)&trap, regs->pmaaddr14);
-	csr_write_allowed(CSR_PMAADDR0 + 15, (ulong)&trap, regs->pmaaddr15);
-
 	csr_write_allowed(CSR_SLIE, (ulong)&trap, regs->slie);
 	csr_write_allowed(CSR_SLIP, (ulong)&trap, regs->slip);
+
+	restore_pma_regs(&regs->pma_regs, &trap);
 
 	regs->saved = false;
 
