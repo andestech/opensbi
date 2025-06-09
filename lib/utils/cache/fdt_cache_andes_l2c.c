@@ -119,7 +119,7 @@ static int andes_l2c_wbinval_all(void)
 static int andes_l2c_get_addr(unsigned long *addr)
 {
 	*addr = l2c.addr;
-	return 0;
+	return SBI_OK;
 }
 
 static int andes_l2c_disable(void)

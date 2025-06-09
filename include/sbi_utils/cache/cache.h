@@ -37,7 +37,7 @@ struct cache {
 	/**
 	 * Get cache base address
 	 *
-	 * @return NULL if cache does not exist, else return cache base address
+	 * @return 0 if cache does exist
 	 */
 	int (*get_addr)(unsigned long *addr);
 
