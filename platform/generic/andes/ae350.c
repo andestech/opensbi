@@ -30,10 +30,16 @@
 #include <andes/remoteproc.h>
 #include <andes/trigger.h>
 
+bool reboot = false;
 static struct smu_data smu = { 0 };
 extern void _start_warm(void);
 
 unsigned long save_regs_off;
+
+static inline void ae350_init_reboot(void)
+{
+	reboot = false;
+}
 
 static inline void ae350_disable_coherency(void)
 {
@@ -226,6 +232,9 @@ static int ae350_hart_stop(void)
 
 	csr_write(CSR_SIE, 0);
 	csr_write(CSR_MIE, 0);
+
+	if (reboot)
+		return SBI_ENOTSUPP;
 
 	if (sleep_type == SBI_SUSP_AE350_LIGHT_SLEEP) {
 
@@ -422,6 +431,7 @@ static int ae350_early_init(bool cold_boot, const struct fdt_match *match)
 	if (cold_boot) {
 		remoteproc_init(cold_boot);
 		ae350_smu_device_init();
+		ae350_init_reboot();
 		return fdt_cache_init();
 	}
 

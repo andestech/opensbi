@@ -70,6 +70,11 @@ void __noreturn sbi_system_reset(u32 reset_type, u32 reset_reason)
 	struct sbi_domain *dom = sbi_domain_thishart_ptr();
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 
+#ifdef __ANDES
+	#include <andes/andes.h>
+	reboot = true;
+#endif
+
 	/* Send HALT IPI to every hart other than the current hart */
 	while (!sbi_hsm_hart_interruptible_mask(dom, hbase, &hmask)) {
 		if ((hbase <= cur_hartid)

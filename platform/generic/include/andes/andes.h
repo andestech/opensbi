@@ -5,12 +5,14 @@
 
 #ifndef _RISCV_ANDES_H
 #define _RISCV_ANDES_H
+#include <sbi/sbi_types.h>
 
 #ifndef __ASSEMBLER__
 #include <andes/dcause.h>
 #endif
 
 #define AE350_HART_COUNT_MAX	8
+extern bool reboot;
 
 /*
  *  Andes V5 machine mode CSRs
