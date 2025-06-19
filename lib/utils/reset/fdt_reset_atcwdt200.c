@@ -15,11 +15,13 @@
 #include <sbi/sbi_hart.h>
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_system.h>
+#include <sbi/sbi_timer.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/reset/fdt_reset.h>
 #include <sbi_utils/sys/atcsmu.h>
 
 #define ATCWDT200_WP_NUM 0x5aa5
+#define RESET_DELAY_SEC 3
 #define WREN_REG 0x18
 #define CTRL_REG 0x10
 #define RST_TIME_OFF 8
@@ -70,6 +72,11 @@ static void ae350_system_reset(u32 type, u32 reason)
 	writew(ATCWDT200_WP_NUM, wdt_addr + WREN_REG);
 	writel(INT_CLK_32768 | INT_EN | RST_CLK_128 | RST_EN | WDT_EN,
 	       wdt_addr + CTRL_REG);
+
+	for (int i = RESET_DELAY_SEC; i > 0; i--) {
+		sbi_printf("Reset ... counting down: %d\n", i);
+		sbi_timer_udelay(1000000);
+	}
 
 	/* Should never reach here */
 	sbi_panic("ERR %s: WDT software reset failed\n", __func__);
