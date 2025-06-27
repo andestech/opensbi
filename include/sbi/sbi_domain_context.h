@@ -38,6 +38,14 @@ struct sbi_context {
 	unsigned long scounteren;
 	/** Supervisor environment configuration register */
 	unsigned long senvcfg;
+#ifdef CONFIG_PLATFORM_ANDES_AE350
+	/** Supervisor local interrupt enable register */
+	unsigned long slie;
+	/** Supervisor local interrupt pending register */
+	unsigned long slip;
+	/** Supervisor detailed trap cause register */
+	unsigned long sdcause;
+#endif
 
 	/** Reference to the owning domain */
 	struct sbi_domain *dom;

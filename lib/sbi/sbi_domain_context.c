@@ -14,6 +14,7 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_domain_context.h>
+#include <andes/andes.h>
 
 /**
  * Switches the HART context from the current domain to the target domain.
@@ -60,6 +61,12 @@ static void switch_to_next_domain_context(struct sbi_context *ctx,
 	ctx->stval	= csr_swap(CSR_STVAL, dom_ctx->stval);
 	ctx->sip	= csr_swap(CSR_SIP, dom_ctx->sip);
 	ctx->satp	= csr_swap(CSR_SATP, dom_ctx->satp);
+	if (is_andes_cpu()) {
+		ctx->slie = csr_swap(CSR_SLIE, dom_ctx->slie);
+		ctx->slip = csr_swap(CSR_SLIP, dom_ctx->slip);
+		ctx->sdcause = csr_swap(CSR_SDCAUSE, dom_ctx->sdcause);
+	}
+
 	if (sbi_hart_priv_version(scratch) >= SBI_HART_PRIV_VER_1_10)
 		ctx->scounteren = csr_swap(CSR_SCOUNTEREN, dom_ctx->scounteren);
 	if (sbi_hart_priv_version(scratch) >= SBI_HART_PRIV_VER_1_12)
