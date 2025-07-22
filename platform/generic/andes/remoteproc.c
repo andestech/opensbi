@@ -6,6 +6,7 @@
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/ipi/andes_plicsw.h>
+#include <andes/andes.h>
 #include <andes/remoteproc.h>
 
 u8		remoteproc_sp_enable;
@@ -137,19 +138,35 @@ warning:
 	return SBI_EINVAL;
 }
 
+uintptr_t remoteproc_get_init_func(void)
+{
+	return (uintptr_t)&remoteproc_init;
+}
+
 void remoteproc_init(bool cold_boot)
 {
 	void *fdt;
 	u32 hartid;
+	int msg;
 
+	csr_set(CSR_MCACHE_CTL, MCACHE_CTL_IC_EN |
+				MCACHE_CTL_DC_EN |
+				MCACHE_CTL_DC_COHEN_EN);
 	hartid = current_hartid();
 	if (cold_boot) {
 		fdt = fdt_get_address();
 		fdt_andes_remoteproc(fdt);
 	} else {
 		if (hartid == remoteproc_sp_hartid) {
-			while(1)
-				wfi();
+			writel(MBOX_NO_MSG,
+			       (unsigned int *)(remoteproc_swmbox + MBOX_OFF));
+
+			while (1) {
+				msg = readl((unsigned int *)(remoteproc_swmbox +
+							     MBOX_OFF));
+				if (msg == MBOX_GET_MSG)
+					wfi();
+			}
 		}
 	}
 }

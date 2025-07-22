@@ -26,8 +26,9 @@ enum sbi_ext_andes_fid {
 	SBI_EXT_ANDES_PMA_FREE,
 	SBI_EXT_ANDES_PMA_PROBE,
 	SBI_EXT_ANDES_DCACHE_EN,
-	SBI_EXT_ANDES_REMOTEPROC_EN,
-	SBI_EXT_ANDES_REMOTEPROC_SEND_IPI,
+	SBI_EXT_ANDES_RPROC_EN,
+	SBI_EXT_ANDES_RPROC_SEND_IPI,
+	SBI_EXT_ANDES_RPROC_GET_INIT_FUNC,
 };
 
 static bool andes_cache_controllable(void)
@@ -107,11 +108,14 @@ int andes_sbi_vendor_ext_provider(long funcid,
 	case SBI_EXT_ANDES_DCACHE_EN:
 		mcall_dcache_op(regs->a0);
 		break;
-	case SBI_EXT_ANDES_REMOTEPROC_EN:
+	case SBI_EXT_ANDES_RPROC_EN:
 		remoteproc_ipi_enable(regs->a0);
 		break;
-	case SBI_EXT_ANDES_REMOTEPROC_SEND_IPI:
+	case SBI_EXT_ANDES_RPROC_SEND_IPI:
 		sbi_ipi_raw_send(regs->a0);
+		break;
+	case SBI_EXT_ANDES_RPROC_GET_INIT_FUNC:
+		out->value = remoteproc_get_init_func();
 		break;
 
 	default:
