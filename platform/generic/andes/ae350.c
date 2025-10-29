@@ -19,6 +19,7 @@
 #include <sbi/sbi_bitops.h>
 #include <sbi/sbi_csr_detect.h>
 #include <sbi/sbi_error.h>
+#include <sbi/sbi_hart.h>
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_ipi.h>
@@ -43,9 +44,9 @@ static inline void ae350_init_reboot(void)
 
 static inline void ae350_disable_coherency(void)
 {
-	csr_write(CSR_MCCTLCOMMAND, MCCTL_L1D_WBINVAL_ALL);
-
 	csr_clear(CSR_MCACHE_CTL, MCACHE_CTL_IC_EN | MCACHE_CTL_DC_EN);
+
+	csr_write(CSR_MCCTLCOMMAND, MCCTL_L1D_WBINVAL_ALL);
 
 	csr_clear(CSR_MCACHE_CTL, MCACHE_CTL_DC_COHEN_EN);
 
@@ -163,6 +164,9 @@ static void ae350_suspend_non_ret_save(struct sbi_scratch *scratch, bool save_l2
 	regs->slie		= csr_read_allowed(CSR_SLIE, (ulong)&trap);
 	regs->slip		= csr_read_allowed(CSR_SLIP, (ulong)&trap);
 
+	regs->mstateen0		= csr_read_allowed(CSR_MSTATEEN0, (ulong)&trap);
+	regs->sstateen0		= csr_read_allowed(CSR_SSTATEEN0, (ulong)&trap);
+
 	save_pma_regs(&regs->pma_regs, &trap);
 
 	if (save_l2c_setting && cache_get_addr(&l2c_addr) == SBI_OK)
@@ -186,6 +190,9 @@ static void ae350_suspend_non_ret_restore(struct sbi_scratch *scratch, bool save
 	csr_write_allowed(CSR_MXSTATUS, (ulong)&trap, regs->mxstatus);
 	csr_write_allowed(CSR_SLIE, (ulong)&trap, regs->slie);
 	csr_write_allowed(CSR_SLIP, (ulong)&trap, regs->slip);
+
+	csr_write_allowed(CSR_MSTATEEN0, (ulong)&trap, regs->mstateen0);
+	csr_write_allowed(CSR_SSTATEEN0, (ulong)&trap, regs->sstateen0);
 
 	restore_pma_regs(&regs->pma_regs, &trap);
 
@@ -229,6 +236,7 @@ static int ae350_hart_stop(void)
 	int rc;
 	u32 hartid = current_hartid();
 	u32 sleep_type = smu_get_sleep_type(&smu, hartid);
+	struct sbi_scratch *scratch = (struct sbi_scratch*)csr_read(CSR_MSCRATCH);
 
 	csr_write(CSR_SIE, 0);
 	csr_write(CSR_MIE, 0);
@@ -238,9 +246,14 @@ static int ae350_hart_stop(void)
 
 	if (sleep_type == SBI_SUSP_AE350_LIGHT_SLEEP) {
 
-		csr_write(CSR_MIE, MIP_MSIP);
 		// set wake event (M-mode Software Interrupt only)
-		smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MSIP_OFFSET, hartid);
+		if (sbi_hart_has_extension(scratch, SBI_HART_EXT_SMAIA)) {
+			csr_write(CSR_MIE, MIP_MEIP);
+			smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MEIP_OFFSET, hartid);
+		} else {
+			csr_write(CSR_MIE, MIP_MSIP);
+			smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MSIP_OFFSET, hartid);
+		}
 
 		smu_set_command(&smu, LIGHT_SLEEP_CMD, hartid);
 
@@ -248,9 +261,14 @@ static int ae350_hart_stop(void)
 
 	} else if (sleep_type == SBI_SUSP_AE350_DEEP_SLEEP) {
 
-		csr_write(CSR_MIE, MIP_MSIP);
 		// set wake event (M-mode Software Interrupt only)
-		smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MSIP_OFFSET, hartid);
+		if (sbi_hart_has_extension(scratch, SBI_HART_EXT_SMAIA)) {
+			csr_write(CSR_MIE, MIP_MEIP);
+			smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MEIP_OFFSET, hartid);
+		} else {
+			csr_write(CSR_MIE, MIP_MSIP);
+			smu_set_wakeup_events(&smu, 0x1 << PCS_WAKE_MSIP_OFFSET, hartid);
+		}
 
 		smu_set_command(&smu, DEEP_SLEEP_CMD, hartid);
 

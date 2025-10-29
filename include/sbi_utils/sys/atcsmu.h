@@ -11,6 +11,7 @@
 
 /* clang-format off */
 #define PCS_WAKE_MSIP_OFFSET	29
+#define PCS_WAKE_MEIP_OFFSET	31
 
 #define PCS0_SCRATCH_OFFSET	0x84
 #define PCSm_SCRATCH_OFFSET(n) ((n + 3) * 0x20 + PCS0_SCRATCH_OFFSET)
@@ -92,6 +93,10 @@ struct save_regs {
 	unsigned long mxstatus;
 	unsigned long slie;
 	unsigned long slip;
+
+	unsigned long mstateen0;
+	unsigned long sstateen0;
+
 	unsigned long l2c_ctl;
 	struct pma_regs pma_regs;
 };
