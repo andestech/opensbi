@@ -368,9 +368,14 @@ static int ae350_system_suspend(u32 sleep_type, unsigned long mmode_resume_addr)
 
 		ae350_suspend_non_ret_save(sbi_scratch_thishart_ptr(), true);
 
-		ae350_disable_coherency();
-		/* disable L2 cache */
+		/*
+		 * On 45-series CPUs, disabling L1 causes the CPU to bypass L2.
+		 * Disable L2 first to prevent overwriting stack data during its flush.
+		 */
 		cache_disable();
+
+		/* With L2 disabled, safely disable L1 and flush its contents to DRAM. */
+		ae350_disable_coherency();
 	}
 
 	wfi();
