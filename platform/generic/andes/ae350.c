@@ -392,7 +392,12 @@ static struct sbi_system_suspend_device andes_smu_susp = {
 	.system_suspend		= ae350_system_suspend,
 };
 
-static inline bool ae350_support_smepmp(void)
+/*
+ * Since hart extensions are set in sbi_hart_init(), which is after
+ * sbi_platform_early_init(), implement the detection function instead of using
+ * sbi_hart_has_extension().
+ */
+bool ae350_support_smepmp(void)
 {
 	unsigned long extensions[BITS_TO_LONGS(SBI_HART_EXT_MAX)] = { 0 };
 

@@ -7,6 +7,7 @@
  *   Yu Chien Peter Lin <peterlin@andestech.com>
  */
 
+#include <andes/andes.h>
 #include <libfdt.h>
 #include <sbi/riscv_io.h>
 #include <sbi/sbi_console.h>
@@ -91,14 +92,23 @@ static struct sbi_system_reset_device atcwdt200_reset = {
 static int atcwdt200_reset_init(void *fdt, int nodeoff,
 				const struct fdt_match *match)
 {
-	uint64_t reg_addr;
+	uint64_t reg_addr, size;
 	int rc;
 
-	rc = fdt_get_node_addr_size(fdt, nodeoff, 0, &reg_addr, NULL);
-	if (rc < 0 || !reg_addr)
+	rc = fdt_get_node_addr_size(fdt, nodeoff, 0, &reg_addr, &size);
+	if (rc < 0 || !reg_addr || !size)
 		return SBI_ENODEV;
 
 	wdt_addr = (volatile char *)(unsigned long)reg_addr;
+
+	sbi_system_reset_add_device(&atcwdt200_reset);
+
+	if (ae350_support_smepmp()) {
+		sbi_domain_root_add_memrange((unsigned long)reg_addr,
+					     (unsigned long)size, PAGE_SIZE,
+					     SBI_DOMAIN_MEMREGION_MMIO |
+					     SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW);
+	}
 
 	/*
 	 * The reset device requires smu to program the reset
@@ -108,8 +118,6 @@ static int atcwdt200_reset_init(void *fdt, int nodeoff,
 		return SBI_ENODEV;
 
 	smu.addr = (unsigned long)reg_addr;
-
-	sbi_system_reset_add_device(&atcwdt200_reset);
 
 	return 0;
 }

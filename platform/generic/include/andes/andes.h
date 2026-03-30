@@ -277,4 +277,6 @@ extern bool reboot;
 #define L2C_CTL_DRAMOCTL_MASK		(3UL << L2C_CTL_DRAMOCTL_OFFSET)
 #define L2C_CTL_DRAMICTL_MASK		(1UL << L2C_CTL_DRAMICTL_OFFSET)
 
+bool ae350_support_smepmp(void);
+
 #endif /* _RISCV_ANDES_H */
